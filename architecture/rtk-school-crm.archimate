@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengroup.org/xsd/archimate/3.0/ http://www.opengroup.org/xsd/archimate/3.1/archimate3_Diagram.xsd" identifier="id-rtk-school-crm">
+  <name xml:lang="ru">RTK School CRM — функциональная и компонентная архитектура</name>
+  <documentation xml:lang="ru">CRM ИТ Школы Ростелекома для продаж образовательных программ вузам и физлицам. Модель описывает бизнес-процессы (кто и как ведёт сделку, подписывает документ, импортирует каталог), прикладные сервисы и компоненты (веб-клиент, API, фоновый воркер) и технологический слой (закрытый Docker-контур: Postgres, Redis, SeaweedFS, Keycloak, Caddy). Собрана вручную по исходному коду и README проекта (не экспортирована из работающей модели Archi) — при открытии в Archi возможны мелкие расхождения в раскладке, содержание проверено по коду.</documentation>
+
+  <elements>
+    <!-- ============================================================ Бизнес-слой ============================================================ -->
+    <element identifier="id-actor-kam" xsi:type="BusinessActor">
+      <name xml:lang="ru">КАМ (менеджер по вузам)</name>
+      <documentation xml:lang="ru">Ведёт свои сделки, организации своих сделок, свои задачи, входящие документы на подпись.</documentation>
+    </element>
+    <element identifier="id-actor-head" xsi:type="BusinessActor">
+      <name xml:lang="ru">Руководитель (HEAD)</name>
+      <documentation xml:lang="ru">Видит и переназначает сделки команды, запускает импорт каталогов, согласования, отчёты по команде.</documentation>
+    </element>
+    <element identifier="id-actor-admin" xsi:type="BusinessActor">
+      <name xml:lang="ru">Администратор (ADMIN)</name>
+      <documentation xml:lang="ru">Настраивает воронки, справочники, интеграции, пользователей; необратимые операции подтверждает второй администратор («четыре глаза»).</documentation>
+    </element>
+    <element identifier="id-actor-auditor" xsi:type="BusinessActor">
+      <name xml:lang="ru">Аудитор (AUDITOR)</name>
+      <documentation xml:lang="ru">Только чтение: журнал аудита, проверка целостности цепочки хэшей, экспорт.</documentation>
+    </element>
+    <element identifier="id-actor-signer-ext" xsi:type="BusinessActor">
+      <name xml:lang="ru">Внешний подписант</name>
+      <documentation xml:lang="ru">Сотрудник вуза или физлицо; подписывает документ ПЭП по ссылке без входа в систему (/sign/{token}).</documentation>
+    </element>
+    <element identifier="id-actor-integration" xsi:type="BusinessActor">
+      <name xml:lang="ru">Внешняя система (сайт, LMS)</name>
+      <documentation xml:lang="ru">Сервисная учётная запись INTEGRATION: входящие лиды с сайта, прогресс обучения из LMS, вебхуки по HMAC-подписи.</documentation>
+    </element>
+
+    <element identifier="id-bp-deal" xsi:type="BusinessProcess">
+      <name xml:lang="ru">Ведение сделки по воронке</name>
+      <documentation xml:lang="ru">Создание сделки → переходы по настраиваемому графу статусов с условиями, ролями и SLA → закрытие (успех/отказ) или заморозка.</documentation>
+    </element>
+    <element identifier="id-bp-org" xsi:type="BusinessProcess">
+      <name xml:lang="ru">Идентификация организации по ИНН</name>
+      <documentation xml:lang="ru">Поиск в локальном реестре ЕГРЮЛ (офлайн), автоподстановка реквизитов, обнаружение дублей и расхождений.</documentation>
+    </element>
+    <element identifier="id-bp-sign" xsi:type="BusinessProcess">
+      <name xml:lang="ru">Подписание документа (ПЭП)</name>
+      <documentation xml:lang="ru">Отправка документа подписантам → просмотр → подтверждение кодом по независимому каналу → протокол, хэш, штамп.</documentation>
+    </element>
+    <element identifier="id-bp-import" xsi:type="BusinessProcess">
+      <name xml:lang="ru">Импорт каталога</name>
+      <documentation xml:lang="ru">Загрузка xlsx/xls/csv → сопоставление колонок → пробный прогон → применение (insert/upsert) → возможный откат.</documentation>
+    </element>
+    <element identifier="id-bp-report" xsi:type="BusinessProcess">
+      <name xml:lang="ru">Формирование отчёта</name>
+      <documentation xml:lang="ru">Выбор шаблона и параметров → построение (синхронно или в очереди) → выгрузка в xlsx/pdf/png по ссылке, действующей ограниченное время.</documentation>
+    </element>
+    <element identifier="id-bp-erasure" xsi:type="BusinessProcess">
+      <name xml:lang="ru">Удаление персональных данных</name>
+      <documentation xml:lang="ru">Запрос → проверка блокеров → отсрочка 30 дней → исполнение (обезличивание/удаление) → акт, подтверждённый вторым администратором.</documentation>
+    </element>
+    <element identifier="id-bp-audit" xsi:type="BusinessProcess">
+      <name xml:lang="ru">Контроль неизменяемого аудита</name>
+      <documentation xml:lang="ru">Каждое действие пишется в журнал с цепочкой хэшей; целостность проверяется по требованию.</documentation>
+    </element>
+
+    <element identifier="id-bs-crm" xsi:type="BusinessService">
+      <name xml:lang="ru">Продажа образовательных программ вузам и физлицам</name>
+      <documentation xml:lang="ru">Итоговая бизнес-услуга: путь от первого контакта с вузом до запуска обучения виден и управляем целиком.</documentation>
+    </element>
+
+    <!-- ============================================================ Прикладной слой ============================================================ -->
+    <element identifier="id-app-web" xsi:type="ApplicationComponent">
+      <name xml:lang="ru">Веб-клиент (SvelteKit SPA)</name>
+      <documentation xml:lang="ru">Единственная точка взаимодействия пользователя с системой; типизированный клиент по OpenAPI, курсорная пагинация, оптимистичная блокировка (If-Match), Idempotency-Key.</documentation>
+    </element>
+    <element identifier="id-app-api" xsi:type="ApplicationComponent">
+      <name xml:lang="ru">API-бэкенд (FastAPI, модульный монолит)</name>
+      <documentation xml:lang="ru">13 модулей (crm, workflow, catalog, identity, signing, imports, reporting, integration, admin, audit, files, registry, notification); RFC 7807, BFF-схема для Keycloak.</documentation>
+    </element>
+    <element identifier="id-app-worker" xsi:type="ApplicationComponent">
+      <name xml:lang="ru">Фоновый воркер (arq)</name>
+      <documentation xml:lang="ru">SLA-эскалации, построение тяжёлых отчётов, обработка импорта, отправка уведомлений — асинхронно, через очередь в Redis.</documentation>
+    </element>
+
+    <element identifier="id-appsvc-deal" xsi:type="ApplicationService">
+      <name xml:lang="ru">Управление сделками и воронкой</name>
+    </element>
+    <element identifier="id-appsvc-org" xsi:type="ApplicationService">
+      <name xml:lang="ru">Организации, контакты, реестр ЕГРЮЛ</name>
+    </element>
+    <element identifier="id-appsvc-sign" xsi:type="ApplicationService">
+      <name xml:lang="ru">Электронная подпись (ПЭП)</name>
+    </element>
+    <element identifier="id-appsvc-import" xsi:type="ApplicationService">
+      <name xml:lang="ru">Импорт каталогов</name>
+    </element>
+    <element identifier="id-appsvc-report" xsi:type="ApplicationService">
+      <name xml:lang="ru">Отчётность и дашборды</name>
+    </element>
+    <element identifier="id-appsvc-auth" xsi:type="ApplicationService">
+      <name xml:lang="ru">Идентификация и доступ (OIDC / BFF)</name>
+      <documentation xml:lang="ru">Демо: пароль-грант в браузере. Прод: код-грант + PKCE, серверная сессия, httpOnly-cookie — токены не покидают Redis.</documentation>
+    </element>
+    <element identifier="id-appsvc-audit" xsi:type="ApplicationService">
+      <name xml:lang="ru">Неизменяемый аудит</name>
+    </element>
+    <element identifier="id-appsvc-notify" xsi:type="ApplicationService">
+      <name xml:lang="ru">Уведомления</name>
+    </element>
+
+    <element identifier="id-appif-rest" xsi:type="ApplicationInterface">
+      <name xml:lang="ru">REST API (/api/*)</name>
+    </element>
+    <element identifier="id-appif-public" xsi:type="ApplicationInterface">
+      <name xml:lang="ru">Публичные страницы (/public/*, /sign, /verify)</name>
+      <documentation xml:lang="ru">Подпись и проверка подписи без входа в систему.</documentation>
+    </element>
+    <element identifier="id-appif-webhook" xsi:type="ApplicationInterface">
+      <name xml:lang="ru">Вебхуки внешних систем (/api/v1/integrations/*)</name>
+      <documentation xml:lang="ru">Подписаны секретом (HMAC); вызываются сайтом и LMS напрямую, минуя браузер.</documentation>
+    </element>
+
+    <element identifier="id-do-deal" xsi:type="DataObject"><name xml:lang="ru">Сделка</name></element>
+    <element identifier="id-do-org" xsi:type="DataObject"><name xml:lang="ru">Организация / контакт</name></element>
+    <element identifier="id-do-doc" xsi:type="DataObject"><name xml:lang="ru">Документ подписи</name></element>
+    <element identifier="id-do-report" xsi:type="DataObject"><name xml:lang="ru">Отчёт / задание отчёта</name></element>
+    <element identifier="id-do-import" xsi:type="DataObject"><name xml:lang="ru">Задание импорта</name></element>
+    <element identifier="id-do-audit" xsi:type="DataObject"><name xml:lang="ru">Запись аудита</name></element>
+    <element identifier="id-do-user" xsi:type="DataObject"><name xml:lang="ru">Пользователь / команда</name></element>
+    <element identifier="id-do-file" xsi:type="DataObject"><name xml:lang="ru">Файл (вложение, скан, отчёт)</name></element>
+
+    <!-- ============================================================ Технологический слой ============================================================ -->
+    <element identifier="id-node-caddy" xsi:type="Node">
+      <name xml:lang="ru">Caddy</name>
+      <documentation xml:lang="ru">Единая точка входа: TLS-терминация, маршрутизация /api /auth /public на соответствующие сервисы, CSP/HSTS/X-Request-Id.</documentation>
+    </element>
+    <element identifier="id-node-postgres" xsi:type="Node">
+      <name xml:lang="ru">PostgreSQL 16</name>
+    </element>
+    <element identifier="id-node-redis" xsi:type="Node">
+      <name xml:lang="ru">Redis 7</name>
+      <documentation xml:lang="ru">Сессии BFF, кэш прав, идемпотентность, очередь arq.</documentation>
+    </element>
+    <element identifier="id-node-seaweed" xsi:type="Node">
+      <name xml:lang="ru">SeaweedFS</name>
+      <documentation xml:lang="ru">S3-совместимое объектное хранилище файлов; presigned-ссылки, браузер обращается к нему напрямую минуя API.</documentation>
+    </element>
+    <element identifier="id-node-keycloak" xsi:type="Node">
+      <name xml:lang="ru">Keycloak 25</name>
+      <documentation xml:lang="ru">OIDC-провайдер, realm crm, пять демо-ролей.</documentation>
+    </element>
+
+    <element identifier="id-techsvc-db" xsi:type="TechnologyService"><name xml:lang="ru">Реляционное хранилище</name></element>
+    <element identifier="id-techsvc-cache" xsi:type="TechnologyService"><name xml:lang="ru">Кэш, сессии и очередь задач</name></element>
+    <element identifier="id-techsvc-s3" xsi:type="TechnologyService"><name xml:lang="ru">Объектное S3-хранилище</name></element>
+    <element identifier="id-techsvc-oidc" xsi:type="TechnologyService"><name xml:lang="ru">OIDC-провайдер</name></element>
+    <element identifier="id-techsvc-gw" xsi:type="TechnologyService"><name xml:lang="ru">TLS-терминация и маршрутизация</name></element>
+
+    <element identifier="id-artifact-api" xsi:type="Artifact"><name xml:lang="ru">Docker-образ api</name></element>
+    <element identifier="id-artifact-worker" xsi:type="Artifact"><name xml:lang="ru">Docker-образ worker</name></element>
+    <element identifier="id-artifact-web" xsi:type="Artifact"><name xml:lang="ru">Docker-образ web (клиент)</name></element>
+  </elements>
+
+  <relationships>
+    <!-- Актёры выполняют бизнес-процессы -->
+    <relationship identifier="id-rel-1" source="id-actor-kam" target="id-bp-deal" xsi:type="Assignment"/>
+    <relationship identifier="id-rel-2" source="id-actor-head" target="id-bp-deal" xsi:type="Assignment"/>
+    <relationship identifier="id-rel-3" source="id-actor-head" target="id-bp-import" xsi:type="Assignment"/>
+    <relationship identifier="id-rel-4" source="id-actor-admin" target="id-bp-erasure" xsi:type="Assignment"/>
+    <relationship identifier="id-rel-5" source="id-actor-admin" target="id-bp-import" xsi:type="Assignment"/>
+    <relationship identifier="id-rel-6" source="id-actor-auditor" target="id-bp-audit" xsi:type="Assignment"/>
+    <relationship identifier="id-rel-7" source="id-actor-signer-ext" target="id-bp-sign" xsi:type="Assignment"/>
+    <relationship identifier="id-rel-8" source="id-actor-kam" target="id-bp-org" xsi:type="Assignment"/>
+    <relationship identifier="id-rel-9" source="id-actor-integration" target="id-bp-deal" xsi:type="Triggering">
+      <documentation xml:lang="ru">Входящий лид с сайта/LMS создаёт сделку через вебхук.</documentation>
+    </relationship>
+
+    <!-- Процессы реализуют итоговую бизнес-услугу -->
+    <relationship identifier="id-rel-10" source="id-bp-deal" target="id-bs-crm" xsi:type="Realization"/>
+    <relationship identifier="id-rel-11" source="id-bp-org" target="id-bs-crm" xsi:type="Realization"/>
+    <relationship identifier="id-rel-12" source="id-bp-sign" target="id-bs-crm" xsi:type="Realization"/>
+
+    <!-- Прикладные сервисы обслуживают бизнес-процессы -->
+    <relationship identifier="id-rel-20" source="id-appsvc-deal" target="id-bp-deal" xsi:type="Serving"/>
+    <relationship identifier="id-rel-21" source="id-appsvc-org" target="id-bp-org" xsi:type="Serving"/>
+    <relationship identifier="id-rel-22" source="id-appsvc-sign" target="id-bp-sign" xsi:type="Serving"/>
+    <relationship identifier="id-rel-23" source="id-appsvc-import" target="id-bp-import" xsi:type="Serving"/>
+    <relationship identifier="id-rel-24" source="id-appsvc-report" target="id-bp-report" xsi:type="Serving"/>
+    <relationship identifier="id-rel-25" source="id-appsvc-audit" target="id-bp-audit" xsi:type="Serving"/>
+    <relationship identifier="id-rel-26" source="id-appsvc-auth" target="id-bs-crm" xsi:type="Serving"/>
+
+    <!-- Компоненты реализуют прикладные сервисы -->
+    <relationship identifier="id-rel-30" source="id-app-api" target="id-appsvc-deal" xsi:type="Realization"/>
+    <relationship identifier="id-rel-31" source="id-app-api" target="id-appsvc-org" xsi:type="Realization"/>
+    <relationship identifier="id-rel-32" source="id-app-api" target="id-appsvc-sign" xsi:type="Realization"/>
+    <relationship identifier="id-rel-33" source="id-app-api" target="id-appsvc-import" xsi:type="Realization"/>
+    <relationship identifier="id-rel-34" source="id-app-api" target="id-appsvc-report" xsi:type="Realization"/>
+    <relationship identifier="id-rel-35" source="id-app-api" target="id-appsvc-auth" xsi:type="Realization"/>
+    <relationship identifier="id-rel-36" source="id-app-api" target="id-appsvc-audit" xsi:type="Realization"/>
+    <relationship identifier="id-rel-37" source="id-app-api" target="id-appsvc-notify" xsi:type="Realization"/>
+    <relationship identifier="id-rel-38" source="id-app-worker" target="id-appsvc-report" xsi:type="Realization">
+      <documentation xml:lang="ru">Тяжёлые отчёты строятся в фоне.</documentation>
+    </relationship>
+    <relationship identifier="id-rel-39" source="id-app-worker" target="id-appsvc-import" xsi:type="Realization"/>
+    <relationship identifier="id-rel-40" source="id-app-worker" target="id-appsvc-notify" xsi:type="Realization"/>
+
+    <!-- Веб-клиент пользуется прикладными сервисами через интерфейсы -->
+    <relationship identifier="id-rel-45" source="id-app-web" target="id-appif-rest" xsi:type="Serving"/>
+    <relationship identifier="id-rel-46" source="id-appif-rest" target="id-app-api" xsi:type="Assignment"/>
+    <relationship identifier="id-rel-47" source="id-appif-public" target="id-app-api" xsi:type="Assignment"/>
+    <relationship identifier="id-rel-48" source="id-appif-webhook" target="id-app-api" xsi:type="Assignment"/>
+    <relationship identifier="id-rel-49" source="id-actor-signer-ext" target="id-appif-public" xsi:type="Serving"/>
+    <relationship identifier="id-rel-50" source="id-actor-integration" target="id-appif-webhook" xsi:type="Serving"/>
+    <relationship identifier="id-rel-51" source="id-app-web" target="id-actor-kam" xsi:type="Serving"/>
+    <relationship identifier="id-rel-52" source="id-app-web" target="id-actor-head" xsi:type="Serving"/>
+    <relationship identifier="id-rel-53" source="id-app-web" target="id-actor-admin" xsi:type="Serving"/>
+    <relationship identifier="id-rel-54" source="id-app-web" target="id-actor-auditor" xsi:type="Serving"/>
+
+    <!-- Компонент API читает/пишет данные -->
+    <relationship identifier="id-rel-60" source="id-app-api" target="id-do-deal" xsi:type="Access" accessType="readWrite"/>
+    <relationship identifier="id-rel-61" source="id-app-api" target="id-do-org" xsi:type="Access" accessType="readWrite"/>
+    <relationship identifier="id-rel-62" source="id-app-api" target="id-do-doc" xsi:type="Access" accessType="readWrite"/>
+    <relationship identifier="id-rel-63" source="id-app-api" target="id-do-report" xsi:type="Access" accessType="readWrite"/>
+    <relationship identifier="id-rel-64" source="id-app-api" target="id-do-import" xsi:type="Access" accessType="readWrite"/>
+    <relationship identifier="id-rel-65" source="id-app-api" target="id-do-audit" xsi:type="Access" accessType="write">
+      <documentation xml:lang="ru">Только INSERT — роль crm_app в БД не имеет прав UPDATE/DELETE на audit_log.</documentation>
+    </relationship>
+    <relationship identifier="id-rel-66" source="id-app-api" target="id-do-user" xsi:type="Access" accessType="readWrite"/>
+    <relationship identifier="id-rel-67" source="id-app-api" target="id-do-file" xsi:type="Access" accessType="readWrite"/>
+    <relationship identifier="id-rel-68" source="id-app-worker" target="id-do-report" xsi:type="Access" accessType="write"/>
+    <relationship identifier="id-rel-69" source="id-app-worker" target="id-do-import" xsi:type="Access" accessType="write"/>
+
+    <!-- Данные хранятся технологическими сервисами -->
+    <relationship identifier="id-rel-75" source="id-techsvc-db" target="id-do-deal" xsi:type="Serving"/>
+    <relationship identifier="id-rel-76" source="id-techsvc-db" target="id-do-org" xsi:type="Serving"/>
+    <relationship identifier="id-rel-77" source="id-techsvc-db" target="id-do-audit" xsi:type="Serving"/>
+    <relationship identifier="id-rel-78" source="id-techsvc-db" target="id-do-user" xsi:type="Serving"/>
+    <relationship identifier="id-rel-79" source="id-techsvc-s3" target="id-do-file" xsi:type="Serving"/>
+    <relationship identifier="id-rel-80" source="id-techsvc-cache" target="id-appsvc-auth" xsi:type="Serving">
+      <documentation xml:lang="ru">Серверная сессия BFF в Redis.</documentation>
+    </relationship>
+
+    <!-- Технологический слой: узлы предоставляют сервисы, компоненты развёрнуты на узлах -->
+    <relationship identifier="id-rel-85" source="id-node-postgres" target="id-techsvc-db" xsi:type="Realization"/>
+    <relationship identifier="id-rel-86" source="id-node-redis" target="id-techsvc-cache" xsi:type="Realization"/>
+    <relationship identifier="id-rel-87" source="id-node-seaweed" target="id-techsvc-s3" xsi:type="Realization"/>
+    <relationship identifier="id-rel-88" source="id-node-keycloak" target="id-techsvc-oidc" xsi:type="Realization"/>
+    <relationship identifier="id-rel-89" source="id-node-caddy" target="id-techsvc-gw" xsi:type="Realization"/>
+    <relationship identifier="id-rel-90" source="id-techsvc-oidc" target="id-appsvc-auth" xsi:type="Serving"/>
+    <relationship identifier="id-rel-91" source="id-techsvc-gw" target="id-node-caddy" xsi:type="Association"/>
+    <relationship identifier="id-rel-92" source="id-node-caddy" target="id-app-api" xsi:type="Serving">
+      <documentation xml:lang="ru">Caddy проксирует /api /public /health на api:8000.</documentation>
+    </relationship>
+    <relationship identifier="id-rel-93" source="id-node-caddy" target="id-app-web" xsi:type="Serving">
+      <documentation xml:lang="ru">Всё остальное — на статику клиента (или на Vite при разработке).</documentation>
+    </relationship>
+    <relationship identifier="id-rel-94" source="id-node-caddy" target="id-node-keycloak" xsi:type="Serving">
+      <documentation xml:lang="ru">/auth/* без среза префикса.</documentation>
+    </relationship>
+
+    <!-- Артефакты реализуют компоненты -->
+    <relationship identifier="id-rel-100" source="id-artifact-api" target="id-app-api" xsi:type="Realization"/>
+    <relationship identifier="id-rel-101" source="id-artifact-worker" target="id-app-worker" xsi:type="Realization"/>
+    <relationship identifier="id-rel-102" source="id-artifact-web" target="id-app-web" xsi:type="Realization"/>
+  </relationships>
+
+  <organizations>
+    <item>
+      <label xml:lang="ru">Бизнес-слой</label>
+      <item identifierRef="id-actor-kam"/>
+      <item identifierRef="id-actor-head"/>
+      <item identifierRef="id-actor-admin"/>
+      <item identifierRef="id-actor-auditor"/>
+      <item identifierRef="id-actor-signer-ext"/>
+      <item identifierRef="id-actor-integration"/>
+      <item identifierRef="id-bp-deal"/>
+      <item identifierRef="id-bp-org"/>
+      <item identifierRef="id-bp-sign"/>
+      <item identifierRef="id-bp-import"/>
+      <item identifierRef="id-bp-report"/>
+      <item identifierRef="id-bp-erasure"/>
+      <item identifierRef="id-bp-audit"/>
+      <item identifierRef="id-bs-crm"/>
+    </item>
+    <item>
+      <label xml:lang="ru">Прикладной слой</label>
+      <item identifierRef="id-app-web"/>
+      <item identifierRef="id-app-api"/>
+      <item identifierRef="id-app-worker"/>
+      <item identifierRef="id-appsvc-deal"/>
+      <item identifierRef="id-appsvc-org"/>
+      <item identifierRef="id-appsvc-sign"/>
+      <item identifierRef="id-appsvc-import"/>
+      <item identifierRef="id-appsvc-report"/>
+      <item identifierRef="id-appsvc-auth"/>
+      <item identifierRef="id-appsvc-audit"/>
+      <item identifierRef="id-appsvc-notify"/>
+      <item identifierRef="id-appif-rest"/>
+      <item identifierRef="id-appif-public"/>
+      <item identifierRef="id-appif-webhook"/>
+      <item identifierRef="id-do-deal"/>
+      <item identifierRef="id-do-org"/>
+      <item identifierRef="id-do-doc"/>
+      <item identifierRef="id-do-report"/>
+      <item identifierRef="id-do-import"/>
+      <item identifierRef="id-do-audit"/>
+      <item identifierRef="id-do-user"/>
+      <item identifierRef="id-do-file"/>
+    </item>
+    <item>
+      <label xml:lang="ru">Технологический слой</label>
+      <item identifierRef="id-node-caddy"/>
+      <item identifierRef="id-node-postgres"/>
+      <item identifierRef="id-node-redis"/>
+      <item identifierRef="id-node-seaweed"/>
+      <item identifierRef="id-node-keycloak"/>
+      <item identifierRef="id-techsvc-db"/>
+      <item identifierRef="id-techsvc-cache"/>
+      <item identifierRef="id-techsvc-s3"/>
+      <item identifierRef="id-techsvc-oidc"/>
+      <item identifierRef="id-techsvc-gw"/>
+      <item identifierRef="id-artifact-api"/>
+      <item identifierRef="id-artifact-worker"/>
+      <item identifierRef="id-artifact-web"/>
+    </item>
+  </organizations>
+</model>
