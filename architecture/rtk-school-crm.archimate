@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<archimate:model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:archimate="http://www.archimatetool.com/archimate" name="RTK School CRM — функциональная и компонентная архитектура" id="id-rtk-school-crm" version="5.0.0">
+  <folder name="Strategy" id="id-170dc91119304b32bc8dd66243b4b5b6" type="strategy"/>
+  <folder name="Business" id="id-940943262825447b951acf484999402e" type="business">
+    <folder name="Бизнес-слой" id="id-22d4547b047d4fe9b00b3ca1b4d9ff87">
+      <element xsi:type="archimate:BusinessActor" name="КАМ (менеджер по вузам)" id="id-actor-kam">
+        <documentation>Ведёт свои сделки, организации своих сделок, свои задачи, входящие документы на подпись.</documentation>
+      </element>
+      <element xsi:type="archimate:BusinessActor" name="Руководитель (HEAD)" id="id-actor-head">
+        <documentation>Видит и переназначает сделки команды, запускает импорт каталогов, согласования, отчёты по команде.</documentation>
+      </element>
+      <element xsi:type="archimate:BusinessActor" name="Администратор (ADMIN)" id="id-actor-admin">
+        <documentation>Настраивает воронки, справочники, интеграции, пользователей; необратимые операции подтверждает второй администратор («четыре глаза»).</documentation>
+      </element>
+      <element xsi:type="archimate:BusinessActor" name="Аудитор (AUDITOR)" id="id-actor-auditor">
+        <documentation>Только чтение: журнал аудита, проверка целостности цепочки хэшей, экспорт.</documentation>
+      </element>
+      <element xsi:type="archimate:BusinessActor" name="Внешний подписант" id="id-actor-signer-ext">
+        <documentation>Сотрудник вуза или физлицо; подписывает документ ПЭП по ссылке без входа в систему (/sign/{token}).</documentation>
+      </element>
+      <element xsi:type="archimate:BusinessActor" name="Внешняя система (сайт, LMS)" id="id-actor-integration">
+        <documentation>Сервисная учётная запись INTEGRATION: входящие лиды с сайта, прогресс обучения из LMS, вебхуки по HMAC-подписи.</documentation>
+      </element>
+      <element xsi:type="archimate:BusinessProcess" name="Ведение сделки по воронке" id="id-bp-deal">
+        <documentation>Создание сделки → переходы по настраиваемому графу статусов с условиями, ролями и SLA → закрытие (успех/отказ) или заморозка.</documentation>
+      </element>
+      <element xsi:type="archimate:BusinessProcess" name="Идентификация организации по ИНН" id="id-bp-org">
+        <documentation>Поиск в локальном реестре ЕГРЮЛ (офлайн), автоподстановка реквизитов, обнаружение дублей и расхождений.</documentation>
+      </element>
+      <element xsi:type="archimate:BusinessProcess" name="Подписание документа (ПЭП)" id="id-bp-sign">
+        <documentation>Отправка документа подписантам → просмотр → подтверждение кодом по независимому каналу → протокол, хэш, штамп.</documentation>
+      </element>
+      <element xsi:type="archimate:BusinessProcess" name="Импорт каталога" id="id-bp-import">
+        <documentation>Загрузка xlsx/xls/csv → сопоставление колонок → пробный прогон → применение (insert/upsert) → возможный откат.</documentation>
+      </element>
+      <element xsi:type="archimate:BusinessProcess" name="Формирование отчёта" id="id-bp-report">
+        <documentation>Выбор шаблона и параметров → построение (синхронно или в очереди) → выгрузка в xlsx/pdf/png по ссылке, действующей ограниченное время.</documentation>
+      </element>
+      <element xsi:type="archimate:BusinessProcess" name="Удаление персональных данных" id="id-bp-erasure">
+        <documentation>Запрос → проверка блокеров → отсрочка 30 дней → исполнение (обезличивание/удаление) → акт, подтверждённый вторым администратором.</documentation>
+      </element>
+      <element xsi:type="archimate:BusinessProcess" name="Контроль неизменяемого аудита" id="id-bp-audit">
+        <documentation>Каждое действие пишется в журнал с цепочкой хэшей; целостность проверяется по требованию.</documentation>
+      </element>
+      <element xsi:type="archimate:BusinessService" name="Продажа образовательных программ вузам и физлицам" id="id-bs-crm">
+        <documentation>Итоговая бизнес-услуга: путь от первого контакта с вузом до запуска обучения виден и управляем целиком.</documentation>
+      </element>
+    </folder>
+  </folder>
+  <folder name="Application" id="id-354446de7b64460c9a9235092e80bee4" type="application">
+    <folder name="Прикладной слой" id="id-75f7902b8a0145eaae1e1f9f93e80a61">
+      <element xsi:type="archimate:ApplicationComponent" name="Веб-клиент (SvelteKit SPA)" id="id-app-web">
+        <documentation>Единственная точка взаимодействия пользователя с системой; типизированный клиент по OpenAPI, курсорная пагинация, оптимистичная блокировка (If-Match), Idempotency-Key.</documentation>
+      </element>
+      <element xsi:type="archimate:ApplicationComponent" name="API-бэкенд (FastAPI, модульный монолит)" id="id-app-api">
+        <documentation>13 модулей (crm, workflow, catalog, identity, signing, imports, reporting, integration, admin, audit, files, registry, notification); RFC 7807, BFF-схема для Keycloak.</documentation>
+      </element>
+      <element xsi:type="archimate:ApplicationComponent" name="Фоновый воркер (arq)" id="id-app-worker">
+        <documentation>SLA-эскалации, построение тяжёлых отчётов, обработка импорта, отправка уведомлений — асинхронно, через очередь в Redis.</documentation>
+      </element>
+      <element xsi:type="archimate:ApplicationService" name="Управление сделками и воронкой" id="id-appsvc-deal"/>
+      <element xsi:type="archimate:ApplicationService" name="Организации, контакты, реестр ЕГРЮЛ" id="id-appsvc-org"/>
+      <element xsi:type="archimate:ApplicationService" name="Электронная подпись (ПЭП)" id="id-appsvc-sign"/>
+      <element xsi:type="archimate:ApplicationService" name="Импорт каталогов" id="id-appsvc-import"/>
+      <element xsi:type="archimate:ApplicationService" name="Отчётность и дашборды" id="id-appsvc-report"/>
+      <element xsi:type="archimate:ApplicationService" name="Идентификация и доступ (OIDC / BFF)" id="id-appsvc-auth">
+        <documentation>Демо: пароль-грант в браузере. Прод: код-грант + PKCE, серверная сессия, httpOnly-cookie — токены не покидают Redis.</documentation>
+      </element>
+      <element xsi:type="archimate:ApplicationService" name="Неизменяемый аудит" id="id-appsvc-audit"/>
+      <element xsi:type="archimate:ApplicationService" name="Уведомления" id="id-appsvc-notify"/>
+      <element xsi:type="archimate:ApplicationInterface" name="REST API (/api/*)" id="id-appif-rest"/>
+      <element xsi:type="archimate:ApplicationInterface" name="Публичные страницы (/public/*, /sign, /verify)" id="id-appif-public">
+        <documentation>Подпись и проверка подписи без входа в систему.</documentation>
+      </element>
+      <element xsi:type="archimate:ApplicationInterface" name="Вебхуки внешних систем (/api/v1/integrations/*)" id="id-appif-webhook">
+        <documentation>Подписаны секретом (HMAC); вызываются сайтом и LMS напрямую, минуя браузер.</documentation>
+      </element>
+      <element xsi:type="archimate:DataObject" name="Сделка" id="id-do-deal"/>
+      <element xsi:type="archimate:DataObject" name="Организация / контакт" id="id-do-org"/>
+      <element xsi:type="archimate:DataObject" name="Документ подписи" id="id-do-doc"/>
+      <element xsi:type="archimate:DataObject" name="Отчёт / задание отчёта" id="id-do-report"/>
+      <element xsi:type="archimate:DataObject" name="Задание импорта" id="id-do-import"/>
+      <element xsi:type="archimate:DataObject" name="Запись аудита" id="id-do-audit"/>
+      <element xsi:type="archimate:DataObject" name="Пользователь / команда" id="id-do-user"/>
+      <element xsi:type="archimate:DataObject" name="Файл (вложение, скан, отчёт)" id="id-do-file"/>
+    </folder>
+  </folder>
+  <folder name="Technology &amp; Physical" id="id-7992e0c907b94da5a4b4bd493e11ab33" type="technology">
+    <folder name="Технологический слой" id="id-0bd860097ec142e8ac1d1876afba7f9b">
+      <element xsi:type="archimate:Node" name="Caddy" id="id-node-caddy">
+        <documentation>Единая точка входа: TLS-терминация, маршрутизация /api /auth /public на соответствующие сервисы, CSP/HSTS/X-Request-Id.</documentation>
+      </element>
+      <element xsi:type="archimate:Node" name="PostgreSQL 16" id="id-node-postgres"/>
+      <element xsi:type="archimate:Node" name="Redis 7" id="id-node-redis">
+        <documentation>Сессии BFF, кэш прав, идемпотентность, очередь arq.</documentation>
+      </element>
+      <element xsi:type="archimate:Node" name="SeaweedFS" id="id-node-seaweed">
+        <documentation>S3-совместимое объектное хранилище файлов; presigned-ссылки, браузер обращается к нему напрямую минуя API.</documentation>
+      </element>
+      <element xsi:type="archimate:Node" name="Keycloak 25" id="id-node-keycloak">
+        <documentation>OIDC-провайдер, realm crm, пять демо-ролей.</documentation>
+      </element>
+      <element xsi:type="archimate:TechnologyService" name="Реляционное хранилище" id="id-techsvc-db"/>
+      <element xsi:type="archimate:TechnologyService" name="Кэш, сессии и очередь задач" id="id-techsvc-cache"/>
+      <element xsi:type="archimate:TechnologyService" name="Объектное S3-хранилище" id="id-techsvc-s3"/>
+      <element xsi:type="archimate:TechnologyService" name="OIDC-провайдер" id="id-techsvc-oidc"/>
+      <element xsi:type="archimate:TechnologyService" name="TLS-терминация и маршрутизация" id="id-techsvc-gw"/>
+      <element xsi:type="archimate:Artifact" name="Docker-образ api" id="id-artifact-api"/>
+      <element xsi:type="archimate:Artifact" name="Docker-образ worker" id="id-artifact-worker"/>
+      <element xsi:type="archimate:Artifact" name="Docker-образ web (клиент)" id="id-artifact-web"/>
+    </folder>
+  </folder>
+  <folder name="Motivation" id="id-bea6e7d6c1ca47718b6696aaa53e31fd" type="motivation"/>
+  <folder name="Implementation &amp; Migration" id="id-aba508bec0ab4717a512add1d3cdb5c0" type="implementation_migration"/>
+  <folder name="Other" id="id-4ab5a9d2d6f94370812bce92985c0a2e" type="other"/>
+  <folder name="Relations" id="id-a13429859a1f4eaf958accbdc2954f87" type="relations">
+    <element xsi:type="archimate:AssignmentRelationship" id="id-rel-1" source="id-actor-kam" target="id-bp-deal"/>
+    <element xsi:type="archimate:AssignmentRelationship" id="id-rel-2" source="id-actor-head" target="id-bp-deal"/>
+    <element xsi:type="archimate:AssignmentRelationship" id="id-rel-3" source="id-actor-head" target="id-bp-import"/>
+    <element xsi:type="archimate:AssignmentRelationship" id="id-rel-4" source="id-actor-admin" target="id-bp-erasure"/>
+    <element xsi:type="archimate:AssignmentRelationship" id="id-rel-5" source="id-actor-admin" target="id-bp-import"/>
+    <element xsi:type="archimate:AssignmentRelationship" id="id-rel-6" source="id-actor-auditor" target="id-bp-audit"/>
+    <element xsi:type="archimate:AssignmentRelationship" id="id-rel-7" source="id-actor-signer-ext" target="id-bp-sign"/>
+    <element xsi:type="archimate:AssignmentRelationship" id="id-rel-8" source="id-actor-kam" target="id-bp-org"/>
+    <element xsi:type="archimate:TriggeringRelationship" id="id-rel-9" source="id-actor-integration" target="id-bp-deal">
+      <documentation>Входящий лид с сайта/LMS создаёт сделку через вебхук.</documentation>
+    </element>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-10" source="id-bp-deal" target="id-bs-crm"/>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-11" source="id-bp-org" target="id-bs-crm"/>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-12" source="id-bp-sign" target="id-bs-crm"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-20" source="id-appsvc-deal" target="id-bp-deal"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-21" source="id-appsvc-org" target="id-bp-org"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-22" source="id-appsvc-sign" target="id-bp-sign"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-23" source="id-appsvc-import" target="id-bp-import"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-24" source="id-appsvc-report" target="id-bp-report"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-25" source="id-appsvc-audit" target="id-bp-audit"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-26" source="id-appsvc-auth" target="id-bs-crm"/>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-30" source="id-app-api" target="id-appsvc-deal"/>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-31" source="id-app-api" target="id-appsvc-org"/>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-32" source="id-app-api" target="id-appsvc-sign"/>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-33" source="id-app-api" target="id-appsvc-import"/>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-34" source="id-app-api" target="id-appsvc-report"/>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-35" source="id-app-api" target="id-appsvc-auth"/>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-36" source="id-app-api" target="id-appsvc-audit"/>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-37" source="id-app-api" target="id-appsvc-notify"/>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-38" source="id-app-worker" target="id-appsvc-report">
+      <documentation>Тяжёлые отчёты строятся в фоне.</documentation>
+    </element>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-39" source="id-app-worker" target="id-appsvc-import"/>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-40" source="id-app-worker" target="id-appsvc-notify"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-45" source="id-app-web" target="id-appif-rest"/>
+    <element xsi:type="archimate:AssignmentRelationship" id="id-rel-46" source="id-appif-rest" target="id-app-api"/>
+    <element xsi:type="archimate:AssignmentRelationship" id="id-rel-47" source="id-appif-public" target="id-app-api"/>
+    <element xsi:type="archimate:AssignmentRelationship" id="id-rel-48" source="id-appif-webhook" target="id-app-api"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-49" source="id-actor-signer-ext" target="id-appif-public"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-50" source="id-actor-integration" target="id-appif-webhook"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-51" source="id-app-web" target="id-actor-kam"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-52" source="id-app-web" target="id-actor-head"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-53" source="id-app-web" target="id-actor-admin"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-54" source="id-app-web" target="id-actor-auditor"/>
+    <element xsi:type="archimate:AccessRelationship" id="id-rel-60" source="id-app-api" target="id-do-deal" accessType="3"/>
+    <element xsi:type="archimate:AccessRelationship" id="id-rel-61" source="id-app-api" target="id-do-org" accessType="3"/>
+    <element xsi:type="archimate:AccessRelationship" id="id-rel-62" source="id-app-api" target="id-do-doc" accessType="3"/>
+    <element xsi:type="archimate:AccessRelationship" id="id-rel-63" source="id-app-api" target="id-do-report" accessType="3"/>
+    <element xsi:type="archimate:AccessRelationship" id="id-rel-64" source="id-app-api" target="id-do-import" accessType="3"/>
+    <element xsi:type="archimate:AccessRelationship" id="id-rel-65" source="id-app-api" target="id-do-audit">
+      <documentation>Только INSERT — роль crm_app в БД не имеет прав UPDATE/DELETE на audit_log.</documentation>
+    </element>
+    <element xsi:type="archimate:AccessRelationship" id="id-rel-66" source="id-app-api" target="id-do-user" accessType="3"/>
+    <element xsi:type="archimate:AccessRelationship" id="id-rel-67" source="id-app-api" target="id-do-file" accessType="3"/>
+    <element xsi:type="archimate:AccessRelationship" id="id-rel-68" source="id-app-worker" target="id-do-report"/>
+    <element xsi:type="archimate:AccessRelationship" id="id-rel-69" source="id-app-worker" target="id-do-import"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-75" source="id-techsvc-db" target="id-do-deal"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-76" source="id-techsvc-db" target="id-do-org"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-77" source="id-techsvc-db" target="id-do-audit"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-78" source="id-techsvc-db" target="id-do-user"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-79" source="id-techsvc-s3" target="id-do-file"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-80" source="id-techsvc-cache" target="id-appsvc-auth">
+      <documentation>Серверная сессия BFF в Redis.</documentation>
+    </element>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-85" source="id-node-postgres" target="id-techsvc-db"/>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-86" source="id-node-redis" target="id-techsvc-cache"/>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-87" source="id-node-seaweed" target="id-techsvc-s3"/>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-88" source="id-node-keycloak" target="id-techsvc-oidc"/>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-89" source="id-node-caddy" target="id-techsvc-gw"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-90" source="id-techsvc-oidc" target="id-appsvc-auth"/>
+    <element xsi:type="archimate:AssociationRelationship" id="id-rel-91" source="id-techsvc-gw" target="id-node-caddy"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-92" source="id-node-caddy" target="id-app-api">
+      <documentation>Caddy проксирует /api /public /health на api:8000.</documentation>
+    </element>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-93" source="id-node-caddy" target="id-app-web">
+      <documentation>Всё остальное — на статику клиента (или на Vite при разработке).</documentation>
+    </element>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-94" source="id-node-caddy" target="id-node-keycloak">
+      <documentation>/auth/* без среза префикса.</documentation>
+    </element>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-100" source="id-artifact-api" target="id-app-api"/>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-101" source="id-artifact-worker" target="id-app-worker"/>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-102" source="id-artifact-web" target="id-app-web"/>
+  </folder>
+  <folder name="Views" id="id-0c8dfef7f89e4b7dabf73b70249ad03e" type="diagrams">
+    <element xsi:type="archimate:ArchimateDiagramModel" name="Обзор архитектуры" id="id-7bd14e8433aa40548ddfd7882f72adde" viewpoint="business_process_cooperation">
+      <child xsi:type="archimate:DiagramObject" id="id-740d27a6eda64dd6bfdc248ed0a6f0b8" targetConnections="id-f7c0e34c6ef740a1ad8bfc0ce567944e" archimateElement="id-actor-admin">
+        <bounds x="20" y="20" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-e39c753b96cf4f6aa851f2fc75e85a0b" source="id-740d27a6eda64dd6bfdc248ed0a6f0b8" target="id-5398ff798efd4f2cb259efb134d43112" archimateRelationship="id-rel-4"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-98478fff326443cfb060bc0ca5e82e8e" source="id-740d27a6eda64dd6bfdc248ed0a6f0b8" target="id-5dfafcb87bd54122bf45fbc3d5501a94" archimateRelationship="id-rel-5"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-28aa8fb9227644caa2029d40f6dd1818" targetConnections="id-3b21371c7cee430fa393fc4509305fbd" archimateElement="id-actor-auditor">
+        <bounds x="20" y="120" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-56189b2db5c6445494bd0a3ded713391" source="id-28aa8fb9227644caa2029d40f6dd1818" target="id-4d36b0c9bdf54b1eaff87bbdbfeb4b1a" archimateRelationship="id-rel-6"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-e0e5f793bfa2472fbb3f2a185294d7a9" targetConnections="id-f31c7f169a18427bb655fc96e4dbe1ca id-e433134eed37410e9eb46cc4d307ab3f id-37d298c436244ceca7c4e263c79c6fa4 id-db7d8d9dfb4c400585ccdce0990b200e" archimateElement="id-bp-deal">
+        <bounds x="20" y="220" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-6dd9d755267d4ea38ac5747decf9a605" source="id-e0e5f793bfa2472fbb3f2a185294d7a9" target="id-ded66362286f4f63b46fcadbeaf2d519" archimateRelationship="id-rel-10"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-2d0396028e944317853f25cac3c03fc5" archimateElement="id-actor-signer-ext">
+        <bounds x="20" y="320" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-73b22eeeab8244d79467e346cb147231" source="id-2d0396028e944317853f25cac3c03fc5" target="id-41896f9712ce449eb70a6104896b30e1" archimateRelationship="id-rel-7"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-938e3253cc114230b07ae37eb7e26681" source="id-2d0396028e944317853f25cac3c03fc5" target="id-69f1764d3e2e4429995b31b5cffffcd2" archimateRelationship="id-rel-49"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-f071fc9b7f2d4fbb8bfc1e5aeb57e05d" archimateElement="id-actor-integration">
+        <bounds x="20" y="420" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-f31c7f169a18427bb655fc96e4dbe1ca" source="id-f071fc9b7f2d4fbb8bfc1e5aeb57e05d" target="id-e0e5f793bfa2472fbb3f2a185294d7a9" archimateRelationship="id-rel-9"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-88693338a2ee47e79cc50e6938676c8b" source="id-f071fc9b7f2d4fbb8bfc1e5aeb57e05d" target="id-95c4181355cc4e5cae8fc78d3e3f077d" archimateRelationship="id-rel-50"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-c29f9c875b104598b86e7a409fd043ba" targetConnections="id-b47e15899c2c476d8128b39016faba70 id-8415e35b3fe54251ada45109a0f5d7fb" archimateElement="id-bp-org">
+        <bounds x="20" y="520" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-27bd6aa07f414de0936744219e5cadb8" source="id-c29f9c875b104598b86e7a409fd043ba" target="id-ded66362286f4f63b46fcadbeaf2d519" archimateRelationship="id-rel-11"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-5dfafcb87bd54122bf45fbc3d5501a94" targetConnections="id-98478fff326443cfb060bc0ca5e82e8e id-88a258667a8c4ad39f4f97a0c49f10b3 id-f31c4e41873a45c0be15d406cd47385f" archimateElement="id-bp-import">
+        <bounds x="20" y="620" width="120" height="55"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-c818cca7f65a4172abb2efa4617c5fb2" targetConnections="id-87cd42bbe41b401d8b7f9b95ae6974b6" archimateElement="id-actor-kam">
+        <bounds x="20" y="720" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-e433134eed37410e9eb46cc4d307ab3f" source="id-c818cca7f65a4172abb2efa4617c5fb2" target="id-e0e5f793bfa2472fbb3f2a185294d7a9" archimateRelationship="id-rel-1"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-b47e15899c2c476d8128b39016faba70" source="id-c818cca7f65a4172abb2efa4617c5fb2" target="id-c29f9c875b104598b86e7a409fd043ba" archimateRelationship="id-rel-8"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-4d36b0c9bdf54b1eaff87bbdbfeb4b1a" targetConnections="id-56189b2db5c6445494bd0a3ded713391 id-19df56ca1630419bb9966400751968df" archimateElement="id-bp-audit">
+        <bounds x="20" y="820" width="120" height="55"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-41896f9712ce449eb70a6104896b30e1" targetConnections="id-73b22eeeab8244d79467e346cb147231 id-f3175bcce131414eaeec511d38e87f93" archimateElement="id-bp-sign">
+        <bounds x="20" y="920" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-ca3661bf0f604d1a9860a09bdcefe685" source="id-41896f9712ce449eb70a6104896b30e1" target="id-ded66362286f4f63b46fcadbeaf2d519" archimateRelationship="id-rel-12"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-ded66362286f4f63b46fcadbeaf2d519" targetConnections="id-6dd9d755267d4ea38ac5747decf9a605 id-27bd6aa07f414de0936744219e5cadb8 id-ca3661bf0f604d1a9860a09bdcefe685 id-7fbd7797b66d40988baf607b29dafb8b" archimateElement="id-bs-crm">
+        <bounds x="20" y="1020" width="120" height="55"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-2cd4980f5e4243d3876fede7912a077e" targetConnections="id-33e387122a6f4897a481df73aa0268ac" archimateElement="id-actor-head">
+        <bounds x="20" y="1120" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-37d298c436244ceca7c4e263c79c6fa4" source="id-2cd4980f5e4243d3876fede7912a077e" target="id-e0e5f793bfa2472fbb3f2a185294d7a9" archimateRelationship="id-rel-2"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-88a258667a8c4ad39f4f97a0c49f10b3" source="id-2cd4980f5e4243d3876fede7912a077e" target="id-5dfafcb87bd54122bf45fbc3d5501a94" archimateRelationship="id-rel-3"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-5398ff798efd4f2cb259efb134d43112" targetConnections="id-e39c753b96cf4f6aa851f2fc75e85a0b" archimateElement="id-bp-erasure">
+        <bounds x="20" y="1220" width="120" height="55"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-d8e13202ec9345aebf341e33b2ec7e8a" targetConnections="id-1d9ebeb30ecd45ca90966db2370a89ae" archimateElement="id-bp-report">
+        <bounds x="20" y="1320" width="120" height="55"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-0c16186cce5d4a688c05ca614d8a4e5b" targetConnections="id-77a35a6257bf4de4a0e60d0fe1ae9fa7" archimateElement="id-node-caddy">
+        <bounds x="1680" y="444" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-e1d98687c2f046c2b8caa5aaf92f3ad1" source="id-0c16186cce5d4a688c05ca614d8a4e5b" target="id-7f6f2512760b4586ae1a8b1850a9295a" archimateRelationship="id-rel-94"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-ece712393d1c4a1fb28ddca712b292bb" source="id-0c16186cce5d4a688c05ca614d8a4e5b" target="id-5948b9f2b6ce4e5788ebf598846aed64" archimateRelationship="id-rel-89"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-8c560327f7cd4a1093396b035dd6b2c9" source="id-0c16186cce5d4a688c05ca614d8a4e5b" target="id-18d195554f6a49bca9a8f24e908980c7" archimateRelationship="id-rel-92"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-5bce268e87e248918c2f5589b684f3a0" source="id-0c16186cce5d4a688c05ca614d8a4e5b" target="id-762af13a179340e2a78f074b7a5f04bd" archimateRelationship="id-rel-93"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-492fcb7de9e24dc59797df4742b8d022" archimateElement="id-artifact-api">
+        <bounds x="1830" y="444" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-ed7dfe5bf20a4020aa0d7e44d2b69ecc" source="id-492fcb7de9e24dc59797df4742b8d022" target="id-18d195554f6a49bca9a8f24e908980c7" archimateRelationship="id-rel-100"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-a5fb107f236a4879883fef6ee9d193ff" archimateElement="id-artifact-web">
+        <bounds x="1980" y="444" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-fb7b00393e074ffcb6b4025a688f8279" source="id-a5fb107f236a4879883fef6ee9d193ff" target="id-762af13a179340e2a78f074b7a5f04bd" archimateRelationship="id-rel-102"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-acbe57db026f4f3f899c6e2d048e2cba" archimateElement="id-artifact-worker">
+        <bounds x="1680" y="544" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-8e2551c6775e45318c7350a430a9fc16" source="id-acbe57db026f4f3f899c6e2d048e2cba" target="id-dbb72fcd1b6340f695bd3e5b7bcb87bc" archimateRelationship="id-rel-101"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-7f6f2512760b4586ae1a8b1850a9295a" targetConnections="id-e1d98687c2f046c2b8caa5aaf92f3ad1" archimateElement="id-node-keycloak">
+        <bounds x="1830" y="544" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-d9c34c4a80204d23a17dde0a307e7d57" source="id-7f6f2512760b4586ae1a8b1850a9295a" target="id-881e9781bc81474ea83aa26492fd7344" archimateRelationship="id-rel-88"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-881e9781bc81474ea83aa26492fd7344" targetConnections="id-d9c34c4a80204d23a17dde0a307e7d57" archimateElement="id-techsvc-oidc">
+        <bounds x="1980" y="544" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-ba205fb6e4f544249ab039fd0fe35219" source="id-881e9781bc81474ea83aa26492fd7344" target="id-c9a3fb08bcd84d999ba27b3509409174" archimateRelationship="id-rel-90"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-008d358ec48f45c8a2e8774e5243837f" archimateElement="id-node-postgres">
+        <bounds x="1680" y="644" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-1cae837ed8ff46eeaebd637d772ffd2a" source="id-008d358ec48f45c8a2e8774e5243837f" target="id-47433aa461014b15a067e7a494b266b2" archimateRelationship="id-rel-85"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-8336239badf54efcba8601f6426db633" archimateElement="id-node-redis">
+        <bounds x="1830" y="644" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-dc4789d341a74909b22eaf4b9656cb94" source="id-8336239badf54efcba8601f6426db633" target="id-9bda814b20874071af83e4bd3b8f8a38" archimateRelationship="id-rel-86"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-8ba291c4363440bfa2ecc890469e8c89" archimateElement="id-node-seaweed">
+        <bounds x="1980" y="644" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-9add3e83e427494ebedb23095ce7b2a2" source="id-8ba291c4363440bfa2ecc890469e8c89" target="id-20a9763cc8384fa1a8ceee0e8d8dc3fe" archimateRelationship="id-rel-87"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-5948b9f2b6ce4e5788ebf598846aed64" targetConnections="id-ece712393d1c4a1fb28ddca712b292bb" archimateElement="id-techsvc-gw">
+        <bounds x="1680" y="744" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-77a35a6257bf4de4a0e60d0fe1ae9fa7" source="id-5948b9f2b6ce4e5788ebf598846aed64" target="id-0c16186cce5d4a688c05ca614d8a4e5b" archimateRelationship="id-rel-91"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-9bda814b20874071af83e4bd3b8f8a38" targetConnections="id-dc4789d341a74909b22eaf4b9656cb94" archimateElement="id-techsvc-cache">
+        <bounds x="1830" y="744" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-8c6212c05a9049c88d2caf23e512c9ac" source="id-9bda814b20874071af83e4bd3b8f8a38" target="id-c9a3fb08bcd84d999ba27b3509409174" archimateRelationship="id-rel-80"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-20a9763cc8384fa1a8ceee0e8d8dc3fe" targetConnections="id-9add3e83e427494ebedb23095ce7b2a2" archimateElement="id-techsvc-s3">
+        <bounds x="1980" y="744" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-a4d6bdb331974e8186c39f70df1f362d" source="id-20a9763cc8384fa1a8ceee0e8d8dc3fe" target="id-f75758260c4c47838cb2ffcaa95dbe83" archimateRelationship="id-rel-79"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-47433aa461014b15a067e7a494b266b2" targetConnections="id-1cae837ed8ff46eeaebd637d772ffd2a" archimateElement="id-techsvc-db">
+        <bounds x="1680" y="844" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-1cf5a23def404e56835d24f865c3c435" source="id-47433aa461014b15a067e7a494b266b2" target="id-7b9f20b7fdfb451dbffcd7302bafb48c" archimateRelationship="id-rel-77"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-1b25f87a9acd4628935e9c5a73dff916" source="id-47433aa461014b15a067e7a494b266b2" target="id-4b556286d3924b9685a317a832ae6f24" archimateRelationship="id-rel-76"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-f1fb4133f0614d0f836185e7f79d4572" source="id-47433aa461014b15a067e7a494b266b2" target="id-01425829070241b68a2541707252b651" archimateRelationship="id-rel-78"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-12a8ab3658c14ca299e97fae3d0faa19" source="id-47433aa461014b15a067e7a494b266b2" target="id-e1eb97d9592b44889a9493f769bf8d9f" archimateRelationship="id-rel-75"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-18d195554f6a49bca9a8f24e908980c7" targetConnections="id-a721f32ffb42476094c383cab0f278fe id-070b5dbd8b4a4fc88d87fd470fc8d35f id-ed7dfe5bf20a4020aa0d7e44d2b69ecc id-0d9e6f9deaa54c189f268f62f55943eb id-8c560327f7cd4a1093396b035dd6b2c9" archimateElement="id-app-api">
+        <bounds x="804" y="384" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-28bb8766a44c4ca8a2f609e568e1e907" source="id-18d195554f6a49bca9a8f24e908980c7" target="id-442d13928fdc4373a4d8f856c8dffab7" archimateRelationship="id-rel-62"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-e594c37b64044c19a288c8f498c9309e" source="id-18d195554f6a49bca9a8f24e908980c7" target="id-54721cfb88fb41989e7edf6e4ec5cf22" archimateRelationship="id-rel-64"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-d485737e3a314caa95cd841441941e16" source="id-18d195554f6a49bca9a8f24e908980c7" target="id-7b9f20b7fdfb451dbffcd7302bafb48c" archimateRelationship="id-rel-65"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-dca342fae82f453d875ac9eb0e520429" source="id-18d195554f6a49bca9a8f24e908980c7" target="id-c9a3fb08bcd84d999ba27b3509409174" archimateRelationship="id-rel-35"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-cf9e387f550b4b178ea907d7ad860874" source="id-18d195554f6a49bca9a8f24e908980c7" target="id-d8ce2bf00a9e41638a379d0f61dc8fc8" archimateRelationship="id-rel-33"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-a4551b3685a143b5aef0b791de3a210d" source="id-18d195554f6a49bca9a8f24e908980c7" target="id-d37a5a81e4b043d2892da5e9ffcd8414" archimateRelationship="id-rel-36"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-893aa21639d24f4aa0a54353d5f8b02f" source="id-18d195554f6a49bca9a8f24e908980c7" target="id-1ff84568877e47c2960994d00eb183ac" archimateRelationship="id-rel-31"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-93f8604ab8f94dcc881553627e52a782" source="id-18d195554f6a49bca9a8f24e908980c7" target="id-4b556286d3924b9685a317a832ae6f24" archimateRelationship="id-rel-61"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-63778b338c624dac8e28c4ed169ca579" source="id-18d195554f6a49bca9a8f24e908980c7" target="id-2e335e423bc247a8a16b39b7cd927cb3" archimateRelationship="id-rel-63"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-2515485c9aa848a5b26827e3cf4bd363" source="id-18d195554f6a49bca9a8f24e908980c7" target="id-9558022642d74502817c0a51dc792704" archimateRelationship="id-rel-34"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-a2826dabb35548979a7e2b09e263028d" source="id-18d195554f6a49bca9a8f24e908980c7" target="id-01425829070241b68a2541707252b651" archimateRelationship="id-rel-66"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-cce6df4cfd324c208c4a42d3e07a4080" source="id-18d195554f6a49bca9a8f24e908980c7" target="id-e1eb97d9592b44889a9493f769bf8d9f" archimateRelationship="id-rel-60"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-81cf18b36b914f2a81c61cfc30a27f24" source="id-18d195554f6a49bca9a8f24e908980c7" target="id-a5f50d61972a49cc9ebc02a177d1d49d" archimateRelationship="id-rel-37"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-538759f55c4f4928acbd3ad0593991ae" source="id-18d195554f6a49bca9a8f24e908980c7" target="id-25f6b0d83dba405a82c4e71927713fac" archimateRelationship="id-rel-30"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-c9a16a0295d8407781a1f0c5273538a2" source="id-18d195554f6a49bca9a8f24e908980c7" target="id-f75758260c4c47838cb2ffcaa95dbe83" archimateRelationship="id-rel-67"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-3e4a656cd3c2465088d978ddef5c2542" source="id-18d195554f6a49bca9a8f24e908980c7" target="id-35eb068929b446b082d9494c65944fd4" archimateRelationship="id-rel-32"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-2352da4dc59e42abb377a3f51735c91d" targetConnections="id-0286b5d1206c47ccb6977412c7bac7ad" archimateElement="id-appif-rest">
+        <bounds x="954" y="384" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-a721f32ffb42476094c383cab0f278fe" source="id-2352da4dc59e42abb377a3f51735c91d" target="id-18d195554f6a49bca9a8f24e908980c7" archimateRelationship="id-rel-46"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-762af13a179340e2a78f074b7a5f04bd" targetConnections="id-fb7b00393e074ffcb6b4025a688f8279 id-5bce268e87e248918c2f5589b684f3a0" archimateElement="id-app-web">
+        <bounds x="1104" y="384" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-0286b5d1206c47ccb6977412c7bac7ad" source="id-762af13a179340e2a78f074b7a5f04bd" target="id-2352da4dc59e42abb377a3f51735c91d" archimateRelationship="id-rel-45"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-3b21371c7cee430fa393fc4509305fbd" source="id-762af13a179340e2a78f074b7a5f04bd" target="id-28aa8fb9227644caa2029d40f6dd1818" archimateRelationship="id-rel-54"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-87cd42bbe41b401d8b7f9b95ae6974b6" source="id-762af13a179340e2a78f074b7a5f04bd" target="id-c818cca7f65a4172abb2efa4617c5fb2" archimateRelationship="id-rel-51"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-33e387122a6f4897a481df73aa0268ac" source="id-762af13a179340e2a78f074b7a5f04bd" target="id-2cd4980f5e4243d3876fede7912a077e" archimateRelationship="id-rel-52"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-f7c0e34c6ef740a1ad8bfc0ce567944e" source="id-762af13a179340e2a78f074b7a5f04bd" target="id-740d27a6eda64dd6bfdc248ed0a6f0b8" archimateRelationship="id-rel-53"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-95c4181355cc4e5cae8fc78d3e3f077d" targetConnections="id-88693338a2ee47e79cc50e6938676c8b" archimateElement="id-appif-webhook">
+        <bounds x="804" y="484" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-0d9e6f9deaa54c189f268f62f55943eb" source="id-95c4181355cc4e5cae8fc78d3e3f077d" target="id-18d195554f6a49bca9a8f24e908980c7" archimateRelationship="id-rel-48"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-442d13928fdc4373a4d8f856c8dffab7" targetConnections="id-28bb8766a44c4ca8a2f609e568e1e907" archimateElement="id-do-doc">
+        <bounds x="954" y="484" width="120" height="55"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-54721cfb88fb41989e7edf6e4ec5cf22" targetConnections="id-e594c37b64044c19a288c8f498c9309e id-87b12b6943674ff2ba6cf69164f16082" archimateElement="id-do-import">
+        <bounds x="1104" y="484" width="120" height="55"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-7b9f20b7fdfb451dbffcd7302bafb48c" targetConnections="id-1cf5a23def404e56835d24f865c3c435 id-d485737e3a314caa95cd841441941e16" archimateElement="id-do-audit">
+        <bounds x="804" y="584" width="120" height="55"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-c9a3fb08bcd84d999ba27b3509409174" targetConnections="id-8c6212c05a9049c88d2caf23e512c9ac id-dca342fae82f453d875ac9eb0e520429 id-ba205fb6e4f544249ab039fd0fe35219" archimateElement="id-appsvc-auth">
+        <bounds x="954" y="584" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-7fbd7797b66d40988baf607b29dafb8b" source="id-c9a3fb08bcd84d999ba27b3509409174" target="id-ded66362286f4f63b46fcadbeaf2d519" archimateRelationship="id-rel-26"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-d8ce2bf00a9e41638a379d0f61dc8fc8" targetConnections="id-90d1f8c6f01f4c1eb7cbceb0094c9d5d id-cf9e387f550b4b178ea907d7ad860874" archimateElement="id-appsvc-import">
+        <bounds x="1104" y="584" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-f31c4e41873a45c0be15d406cd47385f" source="id-d8ce2bf00a9e41638a379d0f61dc8fc8" target="id-5dfafcb87bd54122bf45fbc3d5501a94" archimateRelationship="id-rel-23"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-d37a5a81e4b043d2892da5e9ffcd8414" targetConnections="id-a4551b3685a143b5aef0b791de3a210d" archimateElement="id-appsvc-audit">
+        <bounds x="804" y="684" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-19df56ca1630419bb9966400751968df" source="id-d37a5a81e4b043d2892da5e9ffcd8414" target="id-4d36b0c9bdf54b1eaff87bbdbfeb4b1a" archimateRelationship="id-rel-25"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-1ff84568877e47c2960994d00eb183ac" targetConnections="id-893aa21639d24f4aa0a54353d5f8b02f" archimateElement="id-appsvc-org">
+        <bounds x="954" y="684" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-8415e35b3fe54251ada45109a0f5d7fb" source="id-1ff84568877e47c2960994d00eb183ac" target="id-c29f9c875b104598b86e7a409fd043ba" archimateRelationship="id-rel-21"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-4b556286d3924b9685a317a832ae6f24" targetConnections="id-93f8604ab8f94dcc881553627e52a782 id-1b25f87a9acd4628935e9c5a73dff916" archimateElement="id-do-org">
+        <bounds x="1104" y="684" width="120" height="55"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-2e335e423bc247a8a16b39b7cd927cb3" targetConnections="id-e8eb17d6acd4483382ea8be3f158c440 id-63778b338c624dac8e28c4ed169ca579" archimateElement="id-do-report">
+        <bounds x="804" y="784" width="120" height="55"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-9558022642d74502817c0a51dc792704" targetConnections="id-97117cc991f74b6699b7017172d3bda0 id-2515485c9aa848a5b26827e3cf4bd363" archimateElement="id-appsvc-report">
+        <bounds x="954" y="784" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-1d9ebeb30ecd45ca90966db2370a89ae" source="id-9558022642d74502817c0a51dc792704" target="id-d8e13202ec9345aebf341e33b2ec7e8a" archimateRelationship="id-rel-24"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-01425829070241b68a2541707252b651" targetConnections="id-a2826dabb35548979a7e2b09e263028d id-f1fb4133f0614d0f836185e7f79d4572" archimateElement="id-do-user">
+        <bounds x="1104" y="784" width="120" height="55"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-69f1764d3e2e4429995b31b5cffffcd2" targetConnections="id-938e3253cc114230b07ae37eb7e26681" archimateElement="id-appif-public">
+        <bounds x="804" y="884" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-070b5dbd8b4a4fc88d87fd470fc8d35f" source="id-69f1764d3e2e4429995b31b5cffffcd2" target="id-18d195554f6a49bca9a8f24e908980c7" archimateRelationship="id-rel-47"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-e1eb97d9592b44889a9493f769bf8d9f" targetConnections="id-12a8ab3658c14ca299e97fae3d0faa19 id-cce6df4cfd324c208c4a42d3e07a4080" archimateElement="id-do-deal">
+        <bounds x="954" y="884" width="120" height="55"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-a5f50d61972a49cc9ebc02a177d1d49d" targetConnections="id-b1faac56bcce42479a61b5007ebda34c id-81cf18b36b914f2a81c61cfc30a27f24" archimateElement="id-appsvc-notify">
+        <bounds x="1104" y="884" width="120" height="55"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-25f6b0d83dba405a82c4e71927713fac" targetConnections="id-538759f55c4f4928acbd3ad0593991ae" archimateElement="id-appsvc-deal">
+        <bounds x="804" y="984" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-db7d8d9dfb4c400585ccdce0990b200e" source="id-25f6b0d83dba405a82c4e71927713fac" target="id-e0e5f793bfa2472fbb3f2a185294d7a9" archimateRelationship="id-rel-20"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-f75758260c4c47838cb2ffcaa95dbe83" targetConnections="id-c9a16a0295d8407781a1f0c5273538a2 id-a4d6bdb331974e8186c39f70df1f362d" archimateElement="id-do-file">
+        <bounds x="954" y="984" width="120" height="55"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-dbb72fcd1b6340f695bd3e5b7bcb87bc" targetConnections="id-8e2551c6775e45318c7350a430a9fc16" archimateElement="id-app-worker">
+        <bounds x="1104" y="984" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-87b12b6943674ff2ba6cf69164f16082" source="id-dbb72fcd1b6340f695bd3e5b7bcb87bc" target="id-54721cfb88fb41989e7edf6e4ec5cf22" archimateRelationship="id-rel-69"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-90d1f8c6f01f4c1eb7cbceb0094c9d5d" source="id-dbb72fcd1b6340f695bd3e5b7bcb87bc" target="id-d8ce2bf00a9e41638a379d0f61dc8fc8" archimateRelationship="id-rel-39"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-e8eb17d6acd4483382ea8be3f158c440" source="id-dbb72fcd1b6340f695bd3e5b7bcb87bc" target="id-2e335e423bc247a8a16b39b7cd927cb3" archimateRelationship="id-rel-68"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-97117cc991f74b6699b7017172d3bda0" source="id-dbb72fcd1b6340f695bd3e5b7bcb87bc" target="id-9558022642d74502817c0a51dc792704" archimateRelationship="id-rel-38"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-b1faac56bcce42479a61b5007ebda34c" source="id-dbb72fcd1b6340f695bd3e5b7bcb87bc" target="id-a5f50d61972a49cc9ebc02a177d1d49d" archimateRelationship="id-rel-40"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="id-35eb068929b446b082d9494c65944fd4" targetConnections="id-3e4a656cd3c2465088d978ddef5c2542" archimateElement="id-appsvc-sign">
+        <bounds x="804" y="1084" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="id-f3175bcce131414eaeec511d38e87f93" source="id-35eb068929b446b082d9494c65944fd4" target="id-41896f9712ce449eb70a6104896b30e1" archimateRelationship="id-rel-22"/>
+      </child>
+    </element>
+  </folder>
+  <purpose>CRM ИТ Школы Ростелекома для продаж образовательных программ вузам и физлицам. Модель описывает бизнес-процессы (кто и как ведёт сделку, подписывает документ, импортирует каталог), прикладные сервисы и компоненты (веб-клиент, API, фоновый воркер) и технологический слой (закрытый Docker-контур: Postgres, Redis, SeaweedFS, Keycloak, Caddy). Собрана вручную по исходному коду и README проекта (не экспортирована из работающей модели Archi) — при открытии в Archi возможны мелкие расхождения в раскладке, содержание проверено по коду.</purpose>
+</archimate:model>
