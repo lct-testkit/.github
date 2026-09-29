@@ -7,7 +7,7 @@
 <sub>Разработано командой **«Тесткит»** — [github.com/lct-testkit](https://github.com/lct-testkit). Это README продукта целиком; короткий гид по репозиториям — на [странице организации](https://github.com/lct-testkit).</sub>
 
 <!--STATS-->
-**47** экранов &nbsp;·&nbsp; **175** из **203** ручек API связаны с экранами &nbsp;·&nbsp; **69** компонентов интерфейса &nbsp;·&nbsp; **345** тестов клиента &nbsp;·&nbsp; **4** роли &nbsp;·&nbsp; **4** темы &nbsp;·&nbsp; блоки **B1–B15** (приняты)
+**47** экранов &nbsp;·&nbsp; **193** из **210** ручек API связаны с экранами &nbsp;·&nbsp; **69** компонентов интерфейса &nbsp;·&nbsp; **471** тест клиента &nbsp;·&nbsp; **4** роли &nbsp;·&nbsp; **4** темы &nbsp;·&nbsp; блоки **B1–B15** (приняты)
 <!--/STATS-->
 
 [Быстрый старт](#быстрый-старт) · [Сценарии по ролям](#сценарии-по-ролям) · [Как устроено](#как-устроено) · [Битрикс24](#интеграция-с-битрикс24) · [Соответствие требованиям кейса](#соответствие-требованиям-кейса) · [Библиотеки](#используемые-библиотеки) · [Проверка качества](#проверка-качества) · [Веб-клиент](https://github.com/lct-testkit/frontend#readme) · [Бэкенд](https://github.com/lct-testkit/backend#readme) · [Дизайн-система](https://github.com/lct-testkit/rt-ui#readme)
@@ -293,7 +293,7 @@ testkit-lct/
 | http://localhost:8080 | Caddy: клиент (образ `web` или Vite через `WEB_UPSTREAM`), API, Keycloak |
 | https://localhost:8443 | то же по TLS (`tls internal`, самоподписанный сертификат — браузер честно предупредит, это ожидаемо) |
 | http://localhost:8080/api/docs | Swagger UI (закрыт при `APP_PROFILE=prod`) |
-| http://localhost:8080/api/openapi.json | контракт OpenAPI, 203 операции |
+| http://localhost:8080/api/openapi.json | контракт OpenAPI, 210 операций |
 | http://localhost:8080/health/live, `/health/ready` | живость; готовность (БД, Redis, JWKS Keycloak, SeaweedFS, очередь) |
 | http://localhost:8080/auth, `/auth/admin` | Keycloak, realm `crm`; учётные данные консоли — в `backend/.env.example` (`KEYCLOAK_ADMIN_*`) |
 | http://localhost:8333 | вход Caddy в SeaweedFS для presigned-ссылок (файлы) |
@@ -476,7 +476,7 @@ flowchart LR
 
 ## Проверка качества
 
-Прогон от 27.09.2026 (папка `frontend`): 49 файлов и 345 тестов Vitest — все пройдены; `svelte-check` — 2618 файлов, 0 ошибок, 0 предупреждений; ESLint по всему проекту — без замечаний; сборка и бюджет размера бандла в норме.
+Прогон от 29.09.2026 (папка `frontend`): 59 файлов и 471 тест Vitest — все пройдены; `svelte-check` — 2633 файла, 0 ошибок, 0 предупреждений; ESLint по всему проекту — без замечаний; сборка и бюджет размера бандла в норме.
 
 ```bash
 pnpm check
@@ -665,7 +665,7 @@ docker compose stop
 ## Ограничения и известные проблемы
 
 * **Праздники производственного календаря** без ручки удаления — только деактивация (`is_active`); демо-стенд копит записи, созданные проверками. Воронки, направления, причины отказа, шаблоны уведомлений и версии реестра — `DELETE`-ручки уже есть (22.09.2026), с проверкой занятости (409, а не потеря данных): черновик воронки без сделок, направление без дочерних/продуктов, причина без сделок, шаблон — всегда, версия реестра — не последняя завершённая и не выполняющаяся сейчас. Подробности — [`frontend/docs/backend-issues.md`](https://github.com/lct-testkit/frontend/blob/main/docs/backend-issues.md).
-* **28 из 203 ручек OpenAPI без экрана.** 8 сознательно: 3 ручки OIDC-потока (браузер уходит на Keycloak и возвращается сам), 2 health-пробы, 3 вебхука внешних систем (подписаны секретом, которого не должно быть в браузере) — детали и «паспорт» вебхука на карточке источника. Ещё 20 — новые ручки бэкенда (лицензии вуз-вендор-ПО, данные отчёта в JSON, `DELETE` у справочников и воронок, повтор доставки, предпросмотр шаблона, `PATCH /me`, PDF подписи, переиздание ссылки и другие), UI под них пока не строился — [`frontend/docs/STATUS.md`](https://github.com/lct-testkit/frontend/blob/main/docs/STATUS.md).
+* **17 из 210 ручек OpenAPI без экрана.** 8 сознательно: 3 ручки OIDC-потока (браузер уходит на Keycloak и возвращается сам), 2 health-пробы, 3 вебхука внешних систем (подписаны секретом, которого не должно быть в браузере) — детали и «паспорт» вебхука на карточке источника. Ещё 7 — новые ручки бэкенда (четыре `DELETE` на справочниках и продукте, карточка лицензии вуз-вендор-ПО, восстановление удалённой организации, переиздание ссылки подписанту), UI под них пока не строился — [`frontend/docs/STATUS.md`](https://github.com/lct-testkit/frontend/blob/main/docs/STATUS.md).
 * **Редактор воронки на телефоне без перетаскивания узлов** — правка графа рассчитана на десктоп; на телефоне доступны сохранение и публикация.
 * **Каталог блоков `/dev/blocks`** — инструмент разработки, в production-сборку не попадает (проверено поиском по `build/`), но папку `frontend/src/routes/dev` по плану предстоит удалить перед финальной сдачей.
 * **Архитектурная диаграмма в формате Archi** — [`architecture/rtk-school-crm.archimate`](architecture/rtk-school-crm.archimate) (Open Exchange, 3 слоя ArchiMate, 49 элементов). Собрана вручную по коду, не экспортирована из работающей модели (в среде подготовки нет графического Archi) — что именно проверено, честно расписано в [`architecture/README.md`](architecture/README.md).
@@ -681,7 +681,7 @@ docker compose stop
 | [`architecture/rtk-school-crm.archimate`](architecture/rtk-school-crm.archimate) + [`architecture/README.md`](architecture/README.md) | функциональная и компонентная архитектура в формате Archi (Open Exchange, 3 слоя) |
 | [`backend/README.md`](https://github.com/lct-testkit/backend#readme) | бэкенд: стек, запуск, структура, аутентификация, аудит, известные ограничения |
 | [`frontend/README.md`](https://github.com/lct-testkit/frontend#readme) | веб-клиент: стек, блоки интерфейса, соглашения, API-клиент, проверка качества |
-| [`frontend/docs/STATUS.md`](https://github.com/lct-testkit/frontend/blob/main/docs/STATUS.md) | состояние клиента, покрытие ручек (175 из 203), как проверять |
+| [`frontend/docs/STATUS.md`](https://github.com/lct-testkit/frontend/blob/main/docs/STATUS.md) | состояние клиента, покрытие ручек (193 из 210), как проверять |
 | [`frontend/docs/REBUILD-PLAN.md`](https://github.com/lct-testkit/frontend/blob/main/docs/REBUILD-PLAN.md) | блоки B1–B15, критерии приёмки, правила раскладки, что принято заказчиком |
 | [`frontend/docs/USERFLOWS.md`](https://github.com/lct-testkit/frontend/blob/main/docs/USERFLOWS.md) | пользовательские потоки по ролям: экраны, блоки, обязательные состояния |
 | [`frontend/docs/backend-issues.md`](https://github.com/lct-testkit/frontend/blob/main/docs/backend-issues.md) | несоответствия и обходы на стороне бэкенда |
