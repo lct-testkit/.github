@@ -30,6 +30,7 @@
 | Организация / продуктовый README | https://github.com/lct-testkit/.github |
 | Работающий прототип | https://lct.velikoss.ru — демо‑учётки см. раздел 5.3 |
 | Презентация (pptx/pdf) | — добавляется отдельно, вне репозитория с кодом |
+| Скринкасты | 1 — работа в платформе: https://vkvideo.ru/video-241860435_456239017?list=ln-WPmur2CyZgH6NB3xN1 · 2 — развёртка офлайн/онлайн в Proxmox: https://vkvideo.ru/video-241860435_456239018?list=ln-TGrbm0XClyNeuXUdsy (полный список — [`docs/SCREENCASTS.md`](SCREENCASTS.md)) |
 | Настоящий документ | этот файл, `docs/ACCOMPANYING-DOCUMENTATION.md`, а также экспорт в PDF рядом ([`RTK-School-CRM-Documentation.pdf`](RTK-School-CRM-Documentation.pdf)) |
 
 > Полная внутренняя техническая спецификация решения (доменная модель, сквозные механизмы, детальная проработка сценариев) — в приватном репозитории `dotfiles` (`specs/new_spec.md`, `specs/dop.md`); здесь, в `docs/`, лежат публично цитируемые копии `new_spec.md`/`dop.md`/`rtk_requiriments.md`.
