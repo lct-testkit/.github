@@ -1,3 +1,5 @@
+> **Архив (снимок на 26.09.2026), неактуально.** Документ сохранён как был и описывает состояние на эту дату; текущее состояние — [README.md](../../README.md) и [plans/OPEN-ISSUES.md](../../plans/OPEN-ISSUES.md).
+
 # Triage B: checklist.md lines 45-55, 57-66, 68-74, 86-95
 
 Read-only triage of the working tree (read 2026-09-26 00:10-00:35). While I read it, another engineer edited `catalog/service.py`, `catalog/models.py`, `imports/models.py` and added migration `0017_people_import.py`, `core/normalize.py`, `catalog/learner.py`; contact rows reflect the tree at ~00:33. `[BEING-REWRITTEN]` = import pipeline, CMS webhook (`cms.py`, `public_router.py`), ContactService dedup. Effort: S <30 min, M 1-3 h, L >3 h. Evidence is `file:line` in `D:\testkit-lct\backend\app\...` (paths shortened). A few read-only probes were run (stdlib, lxml on inline XML, repo `validators.py` loaded with bytecode writing off: `²`, `1e999`, empty/garbage XML, key length); nothing in the repo was changed.
