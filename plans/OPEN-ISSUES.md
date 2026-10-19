@@ -14,8 +14,8 @@
 | Ссылки в письмах Keycloak вели на внутренний хост, письма на английском | `KC_HOSTNAME` и русская тема `rtk-crm` — [deploy #50, тема Keycloak](https://github.com/lct-testkit/deploy/pull/50), [backend #68, тема Keycloak](https://github.com/lct-testkit/backend/pull/68) |
 | Валидация воронки плоскими строками и аудит на каждый dry-run (B-2, B-3) | структурированные замечания, без записи в аудит — backend, [описание релиза v0.6.1](https://github.com/lct-testkit/deploy/releases/tag/v0.6.1) |
 | Упавшая партия импорта оставляла задание в `applying` (B-14) | статус `failed` — [backend #51](https://github.com/lct-testkit/backend/pull/51) |
-| Неудачные входы и перебор не попадали в `security_events` (I14) | события из опроса Keycloak и при переборе OTP — backend, [описание релиза v0.6.1](https://github.com/lct-testkit/deploy/releases/tag/v0.6.1) |
-| Антивирус — только заглушка | сканер ClamAV включается `CLAMAV_ENABLED` (по умолчанию выключен) — безопасность в составе backend [#62](https://github.com/lct-testkit/backend/pull/62) |
+| Неудачные входы и перебор не попадали в `security_events` (I14) | **закрыто частично.** Перебор одноразового кода и ссылок подписи пишется (`SIGNATURE_OTP_FAILED`, `SIGNATURE_TOKEN_PROBE`). Опрос событий Keycloak (`LOGIN_FAILED`, `BRUTE_FORCE_LOCK`) написан, но по умолчанию выключен — см. открытые — backend, [описание релиза v0.6.1](https://github.com/lct-testkit/deploy/releases/tag/v0.6.1) |
+| Антивирус — только заглушка | **закрыто частично.** Клиент ClamAV и логика карантина написаны (`CLAMAV_ENABLED`, по умолчанию выключен) — безопасность в составе backend [#62](https://github.com/lct-testkit/backend/pull/62); включить его в compose-стенде нельзя без правок — см. открытые |
 | `/health/*` раскрывал детали | полный `/health/details` — по токену `HEALTH_DETAILS_TOKEN` |
 | Нет метрик Prometheus и Grafana | профиль `monitoring`, дашборды — [deploy](https://github.com/lct-testkit/deploy/blob/main/RUNBOOK.md#мониторинг-и-логи) |
 | Сопроводительная документация | [`docs/ACCOMPANYING-DOCUMENTATION.md`](../docs/ACCOMPANYING-DOCUMENTATION.md), обновлена под v0.6.1 |
@@ -29,7 +29,9 @@
 | HA: репликация PostgreSQL асинхронная (вариант — `synchronous_mode`, описан в [ранбуке](https://github.com/lct-testkit/deploy/blob/main/docs/ha-patroni.md)); бэкапов по расписанию нет | OPS | С |
 | HA: не проверялись жёсткое отключение питания лидера, потеря двух узлов, чтение S3 с нового лидера во время изоляции прежнего | OPS | С |
 | Почта на rqlite проверена на трёх контейнерах, не на трёх живых серверах; запуск образов на aarch64 не проверялся | OPS | Н |
-| Helm-чарт: установка в реальный кластер не гонялась; у workload'ов нет `securityContext` | OPS | С |
+| Helm-чарт: установка в реальный кластер не гонялась; `securityContext` задан только у `grafana`, `prometheus` и `ntp`, у остальных workload'ов (`api`, `worker`, `web`, базы) его нет | OPS | С |
+| Опрос событий Keycloak (`KEYCLOAK_EVENTS_POLL_ENABLED`) выключен: события в realm `crm` не включены (`eventsEnabled`), а переменной нет в списке `x-api-env` compose, поэтому неудачные входы в `security_events` не попадают | SEC | С |
+| ClamAV: переменные `CLAMAV_*` есть в `backend/.env.example`, но не входят в `x-api-env` обоих compose-файлов, а сервиса `clamav` нет ни в compose, ни в `images.yaml` — включить сканер без правки compose и отдельного сервиса нельзя | SEC | С |
 | Демо-учётки и их пароли публикуются в `/config.json` demo-режима; публичный demo-стенд отдаёт секрет клиента `crm-bff` | SEC | В |
 | Лёгкая секция блокировки цепочки аудита (оценка по замерам: удержание −32 %, потолок комментариев +22 %) не внедрена | PERF | Н |
 | Сценарии нагрузки в репозитории дают «залп» из 50 запросов (p95 0,65–0,96 с); сценарии реалистичного потока в `main` не влиты | PERF | Н |

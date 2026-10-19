@@ -1,6 +1,6 @@
 # Архитектура в Archi
 
-Кейс (`rtk_requiriments.md`, разд. 6.7) требует описание функциональной и компонентной архитектуры в Archi. `rtk-school-crm.archimate` — модель в формате Open Exchange (ArchiMate 3.x), который читает [Archi](https://www.archimatetool.com/) (Import → Open Exchange File).
+Кейс (`rtk_requiriments.md`, разд. 6.7) требует описание функциональной и компонентной архитектуры в Archi. `rtk-school-crm.archimate` — модель в нативном формате Archi (`.archimate`, ArchiMate 3.x), который открывает [Archi](https://www.archimatetool.com/) (File → Open).
 
 ## Честно про проверку
 
@@ -30,5 +30,5 @@
 ## Открыть
 
 ```bash
-# Archi: File → Import → Open Exchange File → rtk-school-crm.archimate
+# Archi: File → Open → rtk-school-crm.archimate
 ```
