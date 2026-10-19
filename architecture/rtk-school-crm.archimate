@@ -108,6 +108,32 @@
       <element xsi:type="archimate:Artifact" name="Docker-образ api" id="id-artifact-api"/>
       <element xsi:type="archimate:Artifact" name="Docker-образ worker" id="id-artifact-worker"/>
       <element xsi:type="archimate:Artifact" name="Docker-образ web (клиент)" id="id-artifact-web"/>
+      <element xsi:type="archimate:Node" name="Mailpit (почта стенда)" id="id-node-mailpit">
+        <documentation>Профиль compose mail: принимает SMTP от api и worker, письма наружу не уходят; интерфейс /mail только для чтения (MAILPIT_UI=public|crm). В demo включён, на боевой установке выключен.</documentation>
+      </element>
+      <element xsi:type="archimate:Node" name="rqlite (кластер из трёх узлов)" id="id-node-rqlite">
+        <documentation>Хранилище писем Mailpit в HA: письма видны после смены лидера. Слушает только адрес WireGuard, нужна авторизация.</documentation>
+      </element>
+      <element xsi:type="archimate:Node" name="Сайт школы (Laravel 12)" id="id-node-site">
+        <documentation>Профиль compose site: лендинг, страницы курсов, форма заявки; API GET /api/v1/leads (курсор, Bearer) — источник заявок для CRM.</documentation>
+      </element>
+      <element xsi:type="archimate:Node" name="Patroni + etcd" id="id-node-patroni">
+        <documentation>HA PostgreSQL на трёх узлах: etcd с кворумом 2 из 3, асинхронная потоковая репликация, колбэк переключает стек приложения и DNS.</documentation>
+      </element>
+      <element xsi:type="archimate:Node" name="WireGuard-mesh 10.10.0.0/24" id="id-node-wg">
+        <documentation>Сеть между тремя дата-центрами; etcd, Patroni, репликация, SeaweedFS и rqlite ходят только по ней.</documentation>
+      </element>
+      <element xsi:type="archimate:Node" name="Узел n1 — Москва (лидер)" id="id-dc-msk">
+        <documentation>Основной лидер: на нём запущен стек приложения.</documentation>
+      </element>
+      <element xsi:type="archimate:Node" name="Узел n2 — Санкт-Петербург" id="id-dc-spb">
+        <documentation>Реплика БД, копия файлов, голос в кворуме; не цель failover.</documentation>
+      </element>
+      <element xsi:type="archimate:Node" name="Узел n3 — Казань" id="id-dc-kzn">
+        <documentation>Реплика БД, цель failover.</documentation>
+      </element>
+      <element xsi:type="archimate:TechnologyService" name="Почта: приём писем и просмотр" id="id-techsvc-mail"/>
+      <element xsi:type="archimate:Artifact" name="Docker-образ site (Laravel, amd64)" id="id-artifact-site"/>
     </folder>
   </folder>
   <folder name="Motivation" id="id-bea6e7d6c1ca47718b6696aaa53e31fd" type="motivation"/>
@@ -197,6 +223,35 @@
     <element xsi:type="archimate:RealizationRelationship" id="id-rel-100" source="id-artifact-api" target="id-app-api"/>
     <element xsi:type="archimate:RealizationRelationship" id="id-rel-101" source="id-artifact-worker" target="id-app-worker"/>
     <element xsi:type="archimate:RealizationRelationship" id="id-rel-102" source="id-artifact-web" target="id-app-web"/>
+    <element xsi:type="archimate:RealizationRelationship" id="id-rel-110" source="id-node-mailpit" target="id-techsvc-mail"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-111" source="id-techsvc-mail" target="id-app-api">
+      <documentation>api и worker отправляют письма по SMTP на mailpit:1025.</documentation>
+    </element>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-112" source="id-node-rqlite" target="id-node-mailpit">
+      <documentation>MAILPIT_DATABASE указывает на rqlite своего узла.</documentation>
+    </element>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-113" source="id-node-caddy" target="id-node-mailpit">
+      <documentation>/mail — только чтение.</documentation>
+    </element>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-114" source="id-node-caddy" target="id-node-site">
+      <documentation>/site или отдельное имя SITE_HOST.</documentation>
+    </element>
+    <element xsi:type="archimate:AssociationRelationship" id="id-rel-115" source="id-artifact-site" target="id-node-site"/>
+    <element xsi:type="archimate:ServingRelationship" id="id-rel-116" source="id-node-site" target="id-app-worker">
+      <documentation>worker забирает заявки через GET /api/v1/leads и создаёт сделки.</documentation>
+    </element>
+    <element xsi:type="archimate:AggregationRelationship" id="id-rel-117" source="id-dc-msk" target="id-node-patroni"/>
+    <element xsi:type="archimate:AggregationRelationship" id="id-rel-118" source="id-dc-msk" target="id-node-rqlite"/>
+    <element xsi:type="archimate:AggregationRelationship" id="id-rel-119" source="id-dc-msk" target="id-node-seaweed"/>
+    <element xsi:type="archimate:AssociationRelationship" id="id-rel-120" source="id-dc-msk" target="id-node-wg"/>
+    <element xsi:type="archimate:AggregationRelationship" id="id-rel-121" source="id-dc-spb" target="id-node-patroni"/>
+    <element xsi:type="archimate:AggregationRelationship" id="id-rel-122" source="id-dc-spb" target="id-node-rqlite"/>
+    <element xsi:type="archimate:AggregationRelationship" id="id-rel-123" source="id-dc-spb" target="id-node-seaweed"/>
+    <element xsi:type="archimate:AssociationRelationship" id="id-rel-124" source="id-dc-spb" target="id-node-wg"/>
+    <element xsi:type="archimate:AggregationRelationship" id="id-rel-125" source="id-dc-kzn" target="id-node-patroni"/>
+    <element xsi:type="archimate:AggregationRelationship" id="id-rel-126" source="id-dc-kzn" target="id-node-rqlite"/>
+    <element xsi:type="archimate:AggregationRelationship" id="id-rel-127" source="id-dc-kzn" target="id-node-seaweed"/>
+    <element xsi:type="archimate:AssociationRelationship" id="id-rel-128" source="id-dc-kzn" target="id-node-wg"/>
   </folder>
   <folder name="Views" id="id-0c8dfef7f89e4b7dabf73b70249ad03e" type="diagrams">
     <element xsi:type="archimate:ArchimateDiagramModel" name="Обзор архитектуры" id="id-7bd14e8433aa40548ddfd7882f72adde" viewpoint="business_process_cooperation">

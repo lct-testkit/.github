@@ -6,3 +6,5 @@
 |---|---|---|
 | 1 | Работа в платформе — сценарии по ролям, сделки, воронка, отчёты, подписание | [vkvideo.ru](https://vkvideo.ru/video-241860435_456239017?list=ln-WPmur2CyZgH6NB3xN1) [яндекс.диск зеркало](https://disk.yandex.ru/i/0h-QytAjWA8gOw) |
 | 2 | Развёртка офлайн/онлайн в Proxmox — установка `install.sh` от чистой машины до работающего стенда | [vkvideo.ru](https://vkvideo.ru/video-241860435_456239018?list=ln-TGrbm0XClyNeuXUdsy) |
+
+Записи сделаны на версиях до v0.6.1 (интерфейс с тех пор дополнен: лицензии, параметры отчётов, почта стенда, сайт школы). Актуальное состояние можно проверить на живом стенде: [CRM](https://lct.velikoss.ru) (демо-роль в один клик), [почта стенда](https://lct.velikoss.ru/mail/), [сайт школы](https://school.velikoss.ru). Установка из релиза [v0.6.1](https://github.com/lct-testkit/deploy/releases/tag/v0.6.1) — те же шаги, что во втором скринкасте; новые флаги — в [README продукта](../README.md#из-релиза-v061).
