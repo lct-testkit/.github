@@ -1,3 +1,5 @@
+> **Архив (снимок на 26.09.2026), неактуально.** Документ сохранён как был и описывает состояние на эту дату; текущее состояние — [README.md](../../README.md) и [plans/OPEN-ISSUES.md](../../plans/OPEN-ISSUES.md).
+
 # Triage A: checklist.md стр. 1 и 21-43 (рабочее дерево D:\testkit-lct\backend, 2026-09-26)
 
 Метод: только чтение кода (app/, migrations/, tests/), ничего не запускалось и не менялось. Пути в evidence даны от `backend/`, для `app/modules/...` префикс `app/modules/` опущен (например `crm/service.py`). Усилие: S <30 мин, M 1-3 ч, L >3 ч.

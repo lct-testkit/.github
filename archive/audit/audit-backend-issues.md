@@ -1,3 +1,5 @@
+> **Архив (снимок на 27.09.2026), неактуально.** Документ сохранён как был и описывает состояние на эту дату; текущее состояние — [README.md](../../README.md) и [plans/OPEN-ISSUES.md](../../plans/OPEN-ISSUES.md).
+
 # Аудит backend-issues.md против backend main (3b0d5cd, PR #13/#14/#15)
 
 Проверено по коду `D:\testkit-lct\_wt-backend-main` (пути ниже — от `app/`), фронтенд-обходы — по `D:\testkit-lct\_wt-frontend-main\src\lib`.
