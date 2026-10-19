@@ -2,21 +2,56 @@
 
 # Тесткит
 
-**Команда «Тесткит» · CRM для ИТ Школы Ростелекома**
+**Команда «Тесткит» · CRM для ИТ Школы Ростелекома · версия [v0.6.1](https://github.com/lct-testkit/deploy/releases/tag/v0.6.1)**
 
 Внутренняя CRM для продаж образовательных программ вузам и физлицам: воронки со сроками (SLA), автоподстановка организации по ИНН, электронная подпись (ПЭП), неизменяемый аудит. Работает в закрытом контуре, без интернета в рантайме.
 
 <!--STATS-->
-**203** операции API &nbsp;·&nbsp; **67** таблиц &nbsp;·&nbsp; **2152** теста бэкенда &nbsp;·&nbsp; **345** тестов клиента &nbsp;·&nbsp; **47** экранов &nbsp;·&nbsp; **4** роли &nbsp;·&nbsp; **4** темы &nbsp;·&nbsp; **111** компонентов в своей дизайн-системе
+**284** операции API &nbsp;·&nbsp; **53** экрана &nbsp;·&nbsp; **1347** тестов клиента &nbsp;·&nbsp; **более 2700** тестов бэкенда &nbsp;·&nbsp; **3** дата-центра &nbsp;·&nbsp; p95 перехода **100 мс** при 50 RPS &nbsp;·&nbsp; **4** роли &nbsp;·&nbsp; **4** темы &nbsp;·&nbsp; **111** компонентов в своей дизайн-системе
 <!--/STATS-->
 
-[Что мы сделали](#что-мы-сделали) · [С чего начать](#с-чего-начать) · [Репозитории](#карта-репозиториев) · [Как устроено](#как-устроено) · [Попробовать](#попробовать) · [Что внутри](#что-внутри) · [Соответствие кейсу](#соответствие-требованиям-кейса) · [Проверка качества](#как-мы-это-проверяли) · [Документы](#документы)
+[Новое в 0.6.1](#новое-в-061) · [Что мы сделали](#что-мы-сделали) · [С чего начать](#с-чего-начать) · [Репозитории](#карта-репозиториев) · [Как устроено](#как-устроено) · [Попробовать](#попробовать) · [Что внутри](#что-внутри) · [Соответствие кейсу](#соответствие-требованиям-кейса) · [Проверка качества](#как-мы-это-проверяли) · [Документы](#документы)
 
 | <img src="https://github.com/lct-testkit/.github/raw/main/profile/img/crm-home-light.png" width="410" alt="Главная менеджера: плитки KPI, что требует внимания, задачи, воронка"> | <img src="https://github.com/lct-testkit/.github/raw/main/profile/img/crm-deal-dark.png" width="410" alt="Карточка сделки в тёмной теме: статус, лента шагов воронки, вкладки"> |
 |:-:|:-:|
 | *Главная менеджера: KPI, что требует внимания, задачи* | *карточка сделки: шаги воронки, вкладки, тёмная тема* |
 
 </div>
+
+## Новое в 0.6.1
+
+С выхода в финал (v0.5.3, 29.09.2026) сделано 393 коммита в четырёх репозиториях; **v0.6.1 вышла 19.10.2026** — [релиз с офлайн-бандлом](https://github.com/lct-testkit/deploy/releases/tag/v0.6.1) (~1,3 ГБ, подписан cosign). Полная выжимка с ссылками на pull request — в [README продукта](https://github.com/lct-testkit/.github#что-изменилось-с-выхода-в-финал-v053--v061).
+
+> ✅ **Требование кейса «p95 ≤ 300 мс при 50 RPS» выполнено с запасом.** Запросы на запись стали заметно быстрее.
+
+| Операция, 50 RPS, 3 реплики, 4 vCPU | Полуфинал, p95 | Сейчас, p95 | Критерий |
+|---|---|---|---|
+| Комментарий к сделке | 130 мс | **29 мс** | ≤ 300 мс — ✅ |
+| Переход по воронке | 190 мс | **100 мс** | ≤ 300 мс — ✅ |
+
+Потолок записи — около 148 RPS у комментариев и 72–77 RPS у переходов. Оговорка: при искусственном «залпе» из 50 одновременных запросов p95 выше (0,65–0,96 с) из-за последовательной записи в неизменяемую цепочку аудита — осознанный компромисс. Замеры на 4 vCPU с Postgres на tmpfs и кодом от 29.09; на сервере стенда повторная проверка подтвердила выводы.
+
+| | 29.09 | 19.10 |
+|---|---|---|
+| Операции API | 210 | **284** |
+| Экраны | 47 | **53** |
+| Тесты клиента | 377 | **1347** |
+| Справка | 13 глав | **23 + 15 глав администратора** |
+| Стенд | один сервер | **три дата-центра: Москва, Санкт-Петербург, Казань** |
+
+* **Отчёты и лицензии:** 13 шаблонов отчётов с формой параметров и выбором колонок, выгрузка xls/xlsx/pdf/png/json; реестр «вуз — вендор — ПО» с импортом настоящих xls/xlsx.
+* **Воронка и подпись:** ровно 14 шагов задания, перенос открытых сделок между воронками, файлы по статусам, контроль исполнения этапов.
+* **Безопасность:** реестр инцидентов ПДн (уведомления РКН за 24 и 72 часа), шифрование ПДн учащегося, панель безопасности администратора, 55 кодов ошибок с пояснением.
+* **Почта стенда:** все письма системы видны в браузере, только чтение, без входа — [lct.velikoss.ru/mail/](https://lct.velikoss.ru/mail/). HTML-письма в стиле дизайн-системы, приглашение и сброс пароля по ссылке `/invite`, русская тема писем Keycloak.
+* **Сайт школы на Laravel:** [school.velikoss.ru](https://school.velikoss.ru); заявки с формы CRM забирает по API и превращает в сделки.
+* **Три дата-центра:** PostgreSQL под Patroni, файлы в SeaweedFS в двух копиях в разных городах, WireGuard, DNS-failover, письма в кластере rqlite. Переключение лидера: плановое — около 5 с на базу, аварийное — новый лидер за 38 с.
+* **Сборка:** собственные раннеры, образы amd64 и arm64, полный прогон тестов бэкенда — около 17 минут вместо 90 и более.
+
+| <img src="https://github.com/lct-testkit/.github/raw/main/profile/img/mail-invite.png" width="410" alt="Почта стенда: HTML-письмо с приглашением в CRM"> | <img src="https://github.com/lct-testkit/.github/raw/main/profile/img/site-home.png" width="410" alt="Сайт ИТ школы РТК на Laravel: главная с каталогом курсов"> |
+|:-:|:-:|
+| *почта стенда: письма системы видны в браузере* | *сайт школы: заявка с формы становится сделкой в CRM* |
+
+**Посмотреть вживую:** [CRM](https://lct.velikoss.ru) (вход в демо-роль в один клик) · [почта стенда](https://lct.velikoss.ru/mail/) · [сайт школы](https://school.velikoss.ru) · [релиз v0.6.1](https://github.com/lct-testkit/deploy/releases/tag/v0.6.1) · справка внутри платформы (`/help` после входа; [главы в репозитории](https://github.com/lct-testkit/frontend/tree/main/src/lib/content/help)).
 
 ## Что мы сделали
 
@@ -28,14 +63,14 @@
 * **Аудит нельзя переписать.** Записи журнала связаны цепочкой хэшей, а роли приложения в базе запрещены `UPDATE` и `DELETE` над журналом на уровне `GRANT`.
 * **Битрикс24 проверен на живом портале.** Сделка из CRM появилась на портале компании через очередь исходящих событий. [Весь путь, от запроса до записи в базе, — с логами и схемой](https://github.com/lct-testkit/frontend#интеграция-с-битрикс24).
 * **Своя дизайн-система.** Интерфейс собран на `rt-ui` — нашем порте дизайн-системы Ростелекома на Svelte 5: четыре темы, таблица, рассчитанная на десятки тысяч строк, графики; каждая эталонная история сверяется с оригиналом пиксель в пиксель. В самом приложении раздел «Справка» показывает эти компоненты вживую.
-* **Доставка до закрытого контура.** Образы в реестре, docker compose, Helm-чарт, автодеплой на сервер и офлайн-бандл со всеми образами в релизе.
+* **Доставка до закрытого контура.** Образы в реестре, docker compose, Helm-чарт, автодеплой на сервер и подписанный офлайн-бандл со всеми образами в релизе; живой стенд работает на трёх дата-центрах.
 
 ## С чего начать
 
 | Вы… | Идите сюда |
 |---|---|
 | **член жюри**, хотите сверить с требованиями кейса | [Соответствие кейсу](#соответствие-требованиям-кейса) → [то же подробно](https://github.com/lct-testkit/.github#соответствие-требованиям-кейса) |
-| хотите **запустить и потрогать** | [Попробовать](#попробовать) · вход в демо — выбором роли в один клик |
+| хотите **запустить и потрогать** | [Живой стенд](https://lct.velikoss.ru) — вход в демо-роль в один клик · [почта стенда](https://lct.velikoss.ru/mail/) · [сайт школы](https://school.velikoss.ru) · [Попробовать](#попробовать) |
 | хотите понять **устройство** | [Как устроено](#как-устроено) · [схема в Archi](https://github.com/lct-testkit/.github/tree/main/architecture) · [техническое задание](https://github.com/lct-testkit/.github/blob/main/docs/new_spec.md) |
 | **бэкенд**: API, модель данных, права, аудит | [`backend`](https://github.com/lct-testkit/backend#readme) · [контракт `openapi.json`](https://github.com/lct-testkit/backend/blob/main/openapi.json) |
 | **интерфейс**: экраны, блоки, права, проверка | [`frontend`](https://github.com/lct-testkit/frontend#readme) · [пользовательские потоки](https://github.com/lct-testkit/frontend/blob/main/docs/USERFLOWS.md) |
@@ -49,7 +84,7 @@
 | [**`backend`**](https://github.com/lct-testkit/backend) | API: модульный монолит из 13 модулей, миграции, фоновый воркер | Python · FastAPI · SQLAlchemy 2 · PostgreSQL · Redis · arq · Keycloak · SeaweedFS (S3) | [README](https://github.com/lct-testkit/backend#readme), [Swagger и запуск](https://github.com/lct-testkit/backend#быстрый-старт), [безопасность](https://github.com/lct-testkit/backend#безопасность) |
 | [**`frontend`**](https://github.com/lct-testkit/frontend) | Веб-клиент: четыре роли, четыре темы, десктоп и телефон | SvelteKit · Svelte 5 · TypeScript · Tailwind v4 | [README](https://github.com/lct-testkit/frontend#readme), [блоки интерфейса](https://github.com/lct-testkit/frontend#блоки-интерфейса), [редактор воронки](https://github.com/lct-testkit/frontend#редактор-воронки-графовый-конструктор) |
 | [**`rt-ui`**](https://github.com/lct-testkit/rt-ui) | Дизайн-система Ростелекома на Svelte 5: компоненты, иконки, темы, графики | Svelte 5 · TypeScript · CSS-токены | [README](https://github.com/lct-testkit/rt-ui#readme), [как доказываем совпадение](https://github.com/lct-testkit/rt-ui#как-мы-доказываем-совпадение) |
-| [**`deploy`**](https://github.com/lct-testkit/deploy) | Поставка: манифест образов, CI/CD, compose, Helm, автодеплой, офлайн-бандл | GitHub Actions · GHCR · Docker Compose · Helm · systemd | [README](https://github.com/lct-testkit/deploy#readme), [RUNBOOK](https://github.com/lct-testkit/deploy/blob/main/RUNBOOK.md), [релизы](https://github.com/lct-testkit/deploy/releases) |
+| [**`deploy`**](https://github.com/lct-testkit/deploy) | Поставка: манифест образов, CI/CD, compose, Helm, автодеплой, офлайн-бандл, сайт школы на Laravel, HA на трёх узлах | GitHub Actions · GHCR · Docker Compose · Helm · systemd · Laravel · Patroni | [README](https://github.com/lct-testkit/deploy#readme), [RUNBOOK](https://github.com/lct-testkit/deploy/blob/main/RUNBOOK.md), [релизы](https://github.com/lct-testkit/deploy/releases) |
 | [**`.github`**](https://github.com/lct-testkit/.github) | Этот гид, README продукта целиком, техническое задание, архитектура в Archi | Markdown · ArchiMate | [README продукта](https://github.com/lct-testkit/.github#readme) |
 
 ## Как устроено
@@ -65,7 +100,11 @@ flowchart LR
   API -->|"задачи"| WK["worker<br/>SLA, отчёты, импорт,<br/>повторы доставки"]
   WK --> DATA
   WK -->|"исходящие события"| BX["Битрикс24"]
+  API -->|"SMTP"| ML["Mailpit<br/>почта стенда"]
+  WK -->|"заявки по API"| SITE["сайт школы<br/>Laravel"]
 ```
+
+Стенд разнесён на три дата-центра — Москва (лидер), Санкт-Петербург и Казань: PostgreSQL под Patroni, файлы в SeaweedFS в двух копиях, письма в кластере rqlite, адрес переносит DNS-failover. Ранбук с замерами — [`ha-patroni.md`](https://github.com/lct-testkit/deploy/blob/main/docs/ha-patroni.md).
 
 Бэкенд сам выступает BFF: при входе через Keycloak токены остаются в Redis, а браузер получает только `httpOnly`-cookie. Файлы идут напрямую в S3 по временным ссылкам, минуя API. Подробнее: [`backend`](https://github.com/lct-testkit/backend#как-устроено), [`frontend`](https://github.com/lct-testkit/frontend#как-устроено); функциональная и компонентная архитектура — [в Archi](https://github.com/lct-testkit/.github/tree/main/architecture).
 
@@ -88,11 +127,11 @@ flowchart LR
 
 | Способ | Что нужно | Как |
 |---|---|---|
-| **Офлайн-бандл** — быстрее всего | Docker и Docker Compose; интернет после скачивания не нужен | Скачать архив из [последнего релиза `deploy`](https://github.com/lct-testkit/deploy/releases/latest), распаковать и запустить `install.sh`; шаги и проверка целостности — в [RUNBOOK](https://github.com/lct-testkit/deploy/blob/main/RUNBOOK.md#офлайн-установка-закрытый-контур) |
+| **Офлайн-бандл** — быстрее всего | Docker и Docker Compose; интернет после скачивания не нужен | Скачать архив из [релиза v0.6.1](https://github.com/lct-testkit/deploy/releases/tag/v0.6.1), распаковать и запустить `install.sh`; шаги и проверка целостности — в [RUNBOOK](https://github.com/lct-testkit/deploy/blob/main/RUNBOOK.md#офлайн-установка-закрытый-контур) |
 | **Из исходников** — для разработки | Docker, Node.js, pnpm, токен чтения пакета `rt-ui` из GitHub Packages | `backend`: `docker compose up -d --build`; `frontend`: `pnpm install && pnpm dev`. Порты, демо-данные, неполадки — [README продукта](https://github.com/lct-testkit/.github#быстрый-старт) |
 | **Готовые образы на сервере** | Ubuntu или Debian с systemd, доступ к реестру образов | Провижининг, первый деплой, автодеплой, откат — [RUNBOOK](https://github.com/lct-testkit/deploy/blob/main/RUNBOOK.md) |
 
-Вход в демо-режиме — на экране «Выберите роль», паролей вводить не нужно. Менеджер по вузам — «Иван Тесткитович»; ещё есть руководитель, администратор и аудитор. После входа примите согласие на обработку персональных данных — так работает и боевая версия. Swagger UI открывается на `/api/docs`.
+Вход в демо-режиме — на экране «Выберите роль», паролей вводить не нужно. Менеджер по вузам — «Иван Тесткитович»; ещё есть руководитель, администратор и аудитор. После входа примите согласие на обработку персональных данных — так работает и боевая версия. Swagger UI открывается на `/api/docs`. Письма системы на стенде — на `/mail/`, только чтение.
 
 ## Что внутри
 
@@ -103,9 +142,10 @@ flowchart LR
 | 🏛 | **Организации и ЕГРЮЛ**: автоподстановка по ИНН, поиск дублей, дрейф реквизитов | [`catalog`](https://github.com/lct-testkit/backend/tree/main/app/modules/catalog) · [`registry`](https://github.com/lct-testkit/backend/tree/main/app/modules/registry) |
 | ✍️ | **Подпись ПЭП**: запрос, код по независимому каналу, штамп с QR, публичная проверка, соглашения об ЭДО | [`signing`](https://github.com/lct-testkit/backend/tree/main/app/modules/signing) |
 | 📥 | **Импорт каталогов** из xlsx, xls, csv: сопоставление колонок, пробный прогон, откат | [`imports`](https://github.com/lct-testkit/backend/tree/main/app/modules/imports) |
-| 📊 | **Отчёты и дашборды**: 9 шаблонов, выгрузка в xlsx, pdf и png, графики | [`reporting`](https://github.com/lct-testkit/backend/tree/main/app/modules/reporting) |
+| 📊 | **Отчёты и дашборды**: 13 шаблонов с формой параметров, выгрузка в xls, xlsx, pdf, png и json, графики | [`reporting`](https://github.com/lct-testkit/backend/tree/main/app/modules/reporting) |
 | 🛡 | **Права, аудит, персональные данные**: четыре роли, «четыре глаза», журнал с цепочкой хэшей, удаление ПДн по запросу | [безопасность бэкенда](https://github.com/lct-testkit/backend#безопасность) |
-| 🔌 | **Интеграции**: приём данных с сайта и из LMS, исходящая доставка в Битрикс24 | [проверка на живом портале](https://github.com/lct-testkit/frontend#интеграция-с-битрикс24) |
+| 🔌 | **Интеграции**: заявки с сайта школы на Laravel и данные из LMS по API, исходящие webhook-подписки, исходящая доставка в Битрикс24 | [проверка на живом портале](https://github.com/lct-testkit/frontend#интеграция-с-битрикс24) |
+| ✉️ | **Почта стенда**: HTML-письма системы в браузере, приглашение и сброс пароля по ссылке | [`/mail/`](https://lct.velikoss.ru/mail/) |
 | 🎨 | **Дизайн-система `rt-ui`**: четыре темы, таблица, графики, адаптивность | [`rt-ui`](https://github.com/lct-testkit/rt-ui#readme) |
 
 | <img src="https://github.com/lct-testkit/.github/raw/main/profile/img/crm-board-light.png" width="410" alt="Сделки доской по статусам воронки"> | <img src="https://github.com/lct-testkit/.github/raw/main/profile/img/crm-workflow.png" width="410" alt="Редактор воронки: граф статусов и панель свойств"> |
@@ -127,20 +167,20 @@ flowchart LR
 | Требование | Где реализовано |
 |---|---|
 | Каталоги продуктов, направлений, вузов и ответственных; загрузка xls и xlsx с сопоставлением полей | [`catalog`](https://github.com/lct-testkit/backend/tree/main/app/modules/catalog), [`imports`](https://github.com/lct-testkit/backend/tree/main/app/modules/imports): файл → профиль → маппинг → пробный прогон → применение → откат |
-| Отчёты за период с фильтрами; экспорт xlsx и pdf, графики png и pdf | [`reporting`](https://github.com/lct-testkit/backend/tree/main/app/modules/reporting): 8 шаблонов; форматы `xlsx`, `pdf`, `png` |
+| Отчёты за период с фильтрами; экспорт xlsx и pdf, графики png и pdf | [`reporting`](https://github.com/lct-testkit/backend/tree/main/app/modules/reporting): 13 шаблонов; форматы `xlsx`, `pdf`, `png`, `json` |
 | Путь по вузу статус за статусом, правка статусов, комментарий при переходе; базовая воронка из кейса | [Графовый редактор](https://github.com/lct-testkit/frontend#редактор-воронки-графовый-конструктор); воронка `b2b_university_v1` из 14 шагов — [сид](https://github.com/lct-testkit/backend/blob/main/app/modules/workflow/seed.py) |
-| Файлы к статусам (png, jpeg, pdf, zip, gzip, rar, doc, docx, xls, xlsx) | [`files`](https://github.com/lct-testkit/backend/tree/main/app/modules/files): загрузка напрямую в S3, антивирусная проверка |
-| Приём данных с сайта и из LMS по API в JSON | [`integration`](https://github.com/lct-testkit/backend/tree/main/app/modules/integration): публичные вебхуки с подписью HMAC; сверх задания — [доставка в Битрикс24](https://github.com/lct-testkit/frontend#интеграция-с-битрикс24) |
+| Файлы к статусам (png, jpeg, pdf, zip, gzip, rar, doc, docx, xls, xlsx) | [`files`](https://github.com/lct-testkit/backend/tree/main/app/modules/files): загрузка напрямую в S3, антивирусный сканер ClamAV (включается настройкой) |
+| Приём данных с сайта и из LMS по API в JSON | [`integration`](https://github.com/lct-testkit/backend/tree/main/app/modules/integration): публичные вебхуки с подписью HMAC; заявки сайта школы CRM забирает по API; сверх задания — [доставка в Битрикс24](https://github.com/lct-testkit/frontend#интеграция-с-битрикс24) |
 | Роли: пользователь, руководитель, администратор | [`permissions.py`](https://github.com/lct-testkit/backend/blob/main/app/core/permissions.py): `KAM`, `HEAD`, `ADMIN` и четвёртая роль `AUDITOR` только для аудита |
 | Разграничение доступа к данным (152-ФЗ) | Телефон и e-mail контакта раскрываются отдельным правом и явным действием, раскрытие пишется в аудит |
 | Авторизация через Keycloak | Сервис `keycloak`, realm `crm`; демо — вход по паролю, боевой режим — OIDC с PKCE через BFF |
 | Кэш действий пользователя (Redis) | Серверная сессия, кэш прав, ключи идемпотентности, лимиты — [`cache.py`](https://github.com/lct-testkit/backend/blob/main/app/core/cache.py) |
 | Коды ошибок | Каталог `CRM-XXYY` в формате RFC 7807 на каждой ошибке API; клиент показывает человеческую фразу |
-| Отклик до 1 с, без перезагрузки страницы | Клиент — SPA; [нагрузочный тест](https://github.com/lct-testkit/backend/blob/main/loadtest/README.md) (прогон 18.09.2026): p95 79 мс на переходе по статусу и 49 мс на комментарии |
+| Отклик до 1 с, без перезагрузки страницы | Клиент — SPA. **✅ Выполнено: p95 ≤ 300 мс при 50 RPS** — p95 перехода 100 мс, комментария 29 мс (было 190 и 130 мс на полуфинале); [методика нагрузочного теста](https://github.com/lct-testkit/backend/blob/main/loadtest/README.md) |
 | Docker и Linux для всех компонентов | Стек из 11 сервисов в [`docker-compose.yml`](https://github.com/lct-testkit/backend/blob/main/docker-compose.yml) плюс образ клиента; для сервера и кластера — [`deploy`](https://github.com/lct-testkit/deploy#readme) |
 | Swagger UI и перечень библиотек | `/api/docs`; [перечень библиотек](https://github.com/lct-testkit/.github#используемые-библиотеки) |
 | Открытый исходный код без обфускации | Обычные `.py`, `.ts` и `.svelte`, без сборки в бинарь |
-| Документация внутри платформы со скриншотами | Раздел «Справка» в клиенте: главы со скриншотами реального интерфейса — [`help`](https://github.com/lct-testkit/frontend/tree/main/src/lib/content/help) |
+| Документация внутри платформы со скриншотами | Раздел «Справка» в клиенте: 23 главы пользователя и 15 глав администратора со скриншотами реального интерфейса — [`help`](https://github.com/lct-testkit/frontend/tree/main/src/lib/content/help) |
 | Архитектура в Archi | [`architecture/`](https://github.com/lct-testkit/.github/tree/main/architecture): три слоя ArchiMate; модель собрана вручную по коду — что проверено, описано в файле |
 
 ## Как мы это проверяли
@@ -154,8 +194,9 @@ flowchart LR
 ## Честно о границах
 
 * Входящий поток Битрикс24 работает по упрощённому контракту, а не по настоящим событиям портала; исходящая доставка проверена на живом портале.
-* Экраны есть не у всех ручек API: часть служебных ручек (вход, проверки здоровья, вебхуки) без экрана намеренно, для нескольких новых ручек интерфейс ещё не построен — [список](https://github.com/lct-testkit/frontend/blob/main/docs/STATUS.md).
-* Нагрузочный тест снят на одной машине вместе с клиентом; по задержке запас есть, а целевые 50 запросов в секунду на переходе не достигнуты. [Подробности](https://github.com/lct-testkit/backend/blob/main/loadtest/README.md).
+* Экраны есть у 259 из 284 операций API: часть служебных ручек (вход, проверки здоровья, вебхуки) без экрана намеренно, для нескольких интерфейс ещё не построен — [список](https://github.com/lct-testkit/frontend/blob/main/docs/STATUS.md).
+* Нагрузка: цель «50 RPS, p95 ≤ 300 мс» выполняется на реалистичном потоке запросов; при искусственном залпе из 50 одновременных p95 выше 300 мс (запись в неизменяемую цепочку аудита идёт последовательно). Замеры на 4 vCPU, Postgres на tmpfs. [Подробности](https://github.com/lct-testkit/.github#нагрузочное-тестирование).
+* Три дата-центра: репликация PostgreSQL асинхронная, бэкапов по расписанию в HA нет, жёсткое отключение питания и потеря двух узлов не проверялись; почта на rqlite проверена на трёх контейнерах, не на живых серверах. [Ограничения](https://github.com/lct-testkit/.github#ограничения-и-известные-проблемы).
 * Шрифт Rostelecom Basis и фирменные материалы дизайн-системы в репозитории не хранятся; без шрифта интерфейс использует запасную гарнитуру.
 * Найденные по дороге несоответствия бэкенда и обходы — в открытом списке: [`backend-issues.md`](https://github.com/lct-testkit/frontend/blob/main/docs/backend-issues.md).
 
@@ -163,14 +204,15 @@ flowchart LR
 
 | Документ | Что внутри |
 |---|---|
-| [README продукта](https://github.com/lct-testkit/.github#readme) | Запуск, порты, сценарии по ролям, соответствие кейсу, библиотеки, проверка качества, ранбук |
+| [README продукта](https://github.com/lct-testkit/.github#readme) | Что изменилось в 0.6.1, запуск, живой стенд, сценарии по ролям, соответствие кейсу, библиотеки, проверка качества, ранбук |
+| [Скринкасты](https://github.com/lct-testkit/.github/blob/main/docs/SCREENCASTS.md) | Работа в платформе и развёртка от чистой машины до работающего стенда |
 | [Техническое задание](https://github.com/lct-testkit/.github/blob/main/docs/new_spec.md) и [дополнения](https://github.com/lct-testkit/.github/blob/main/docs/dop.md) | Паспорт проекта команды: домены, архитектура, сценарии, матрица прав, модель данных; подпись, ЕГРЮЛ, дизайн-система |
 | [Архитектура в Archi](https://github.com/lct-testkit/.github/tree/main/architecture) | Функциональная и компонентная архитектура, три слоя |
 | [`backend`](https://github.com/lct-testkit/backend#readme) | Стек, запуск, структура, аутентификация, аудит, ограничения |
 | [`frontend`](https://github.com/lct-testkit/frontend#readme) | Стек, блоки интерфейса, API-клиент, проверка качества |
 | [Состояние клиента](https://github.com/lct-testkit/frontend/blob/main/docs/STATUS.md) · [план и приёмка блоков](https://github.com/lct-testkit/frontend/blob/main/docs/REBUILD-PLAN.md) · [потоки по ролям](https://github.com/lct-testkit/frontend/blob/main/docs/USERFLOWS.md) | Покрытие ручек, критерии приёмки, экраны и состояния |
 | [`rt-ui`](https://github.com/lct-testkit/rt-ui#readme) · [порт дизайн-системы](https://github.com/lct-testkit/rt-ui/blob/main/docs/DESIGN-SYSTEM-PORT.md) · [пакет](https://github.com/lct-testkit/rt-ui/blob/main/docs/PACKAGE.md) | Компоненты, темы, сверка с оригиналом, установка пакета |
-| [`deploy`](https://github.com/lct-testkit/deploy#readme) · [RUNBOOK](https://github.com/lct-testkit/deploy/blob/main/RUNBOOK.md) | Образы, конвейер, развёртывание, откат, Kubernetes, офлайн-установка, бэкап |
+| [`deploy`](https://github.com/lct-testkit/deploy#readme) · [RUNBOOK](https://github.com/lct-testkit/deploy/blob/main/RUNBOOK.md) · [HA на трёх узлах](https://github.com/lct-testkit/deploy/blob/main/docs/ha-patroni.md) | Образы, конвейер, развёртывание, откат, Kubernetes, офлайн-установка, бэкап, три дата-центра |
 
 ## Команда и лицензия
 
