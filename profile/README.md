@@ -101,7 +101,7 @@
 
 | Репозиторий | Что это | Стек | Начать с |
 |---|---|---|---|
-| [**`backend`**](https://github.com/lct-testkit/backend) | API: модульный монолит из 13 модулей, миграции, фоновый воркер | Python · FastAPI · SQLAlchemy 2 · PostgreSQL · Redis · arq · Keycloak · SeaweedFS (S3) | [README](https://github.com/lct-testkit/backend#readme), [Swagger и запуск](https://github.com/lct-testkit/backend#быстрый-старт), [безопасность](https://github.com/lct-testkit/backend#безопасность) |
+| [**`backend`**](https://github.com/lct-testkit/backend) | API: модульный монолит из 14 модулей, миграции, фоновый воркер | Python · FastAPI · SQLAlchemy 2 · PostgreSQL · Redis · arq · Keycloak · SeaweedFS (S3) | [README](https://github.com/lct-testkit/backend#readme), [Swagger и запуск](https://github.com/lct-testkit/backend#быстрый-старт), [безопасность](https://github.com/lct-testkit/backend#безопасность) |
 | [**`frontend`**](https://github.com/lct-testkit/frontend) | Веб-клиент: четыре роли, четыре темы, десктоп и телефон | SvelteKit · Svelte 5 · TypeScript · Tailwind v4 | [README](https://github.com/lct-testkit/frontend#readme), [блоки интерфейса](https://github.com/lct-testkit/frontend#блоки-интерфейса), [редактор воронки](https://github.com/lct-testkit/frontend#редактор-воронки-графовый-конструктор) |
 | [**`rt-ui`**](https://github.com/lct-testkit/rt-ui) | Дизайн-система Ростелекома на Svelte 5: компоненты, иконки, темы, графики | Svelte 5 · TypeScript · CSS-токены | [README](https://github.com/lct-testkit/rt-ui#readme), [как доказываем совпадение](https://github.com/lct-testkit/rt-ui#как-мы-доказываем-совпадение) |
 | [**`deploy`**](https://github.com/lct-testkit/deploy) | Поставка: манифест образов, CI/CD, compose, Helm, автодеплой, офлайн-бандл, сайт школы на Laravel, HA на нескольких узлах | GitHub Actions · GHCR · Docker Compose · Helm · systemd · Laravel · Patroni | [README](https://github.com/lct-testkit/deploy#readme), [RUNBOOK](https://github.com/lct-testkit/deploy/blob/main/RUNBOOK.md), [релизы](https://github.com/lct-testkit/deploy/releases) |
@@ -114,7 +114,7 @@ flowchart LR
   U["Сотрудники<br/>менеджер, руководитель,<br/>администратор, аудитор"] --> CD
   X["Внешний подписант<br/>по ссылке, без входа"] --> CD
   CD["Caddy<br/>единая точка входа"] --> WEB["web<br/>клиент на rt-ui"]
-  CD --> API["API<br/>FastAPI, 13 модулей"]
+  CD --> API["API<br/>FastAPI, 14 модулей"]
   CD --> KC["Keycloak<br/>вход и роли"]
   API --> DATA[("PostgreSQL — данные и аудит<br/>Redis — сессии, кэш, очередь<br/>SeaweedFS — файлы, S3")]
   API -->|"задачи"| WK["worker<br/>SLA, отчёты, импорт,<br/>повторы доставки"]
