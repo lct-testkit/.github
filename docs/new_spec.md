@@ -3,7 +3,7 @@
 
 ---
 
-> **Статус документа: сверка с кодом на 19.10.2026 (релиз v0.6.1).**
+> **Статус документа: сверка с кодом на 19.10.2026 (релиз v0.6.1); число операций API и раздел 8 обновлены 20.10.2026 под v0.6.3.**
 > Паспорт написан как проект решения до реализации, затем сверен с `origin/main` репозиториев `backend`, `frontend`, `deploy` и `rt-ui` (чтение кода). Формулировки о реализации исправлены на месте или сопровождены пометкой «Реализовано иначе» / «Не реализовано» / «не проверено». Исходные требования кейса — [`rtk_requiriments.md`](rtk_requiriments.md); как каждое выполнено — [README, «Соответствие требованиям кейса»](../README.md#соответствие-требованиям-кейса) и [сопроводительная документация, раздел 7](ACCOMPANYING-DOCUMENTATION.md#7-соответствие-требованиям-кейса). Часть 10–13 (ПЭП, автоподстановка по ИНН, дизайн-система) вынесены в [`dop.md`](dop.md).
 
 ## Сводка расхождений проекта и реализации
@@ -31,7 +31,7 @@
 | §6 безопасность | `pgcrypto` для телефонов и паспортов, LUKS, антивирус как сервис, Telegram-алерты | Fernet только для СНИЛС, паспорта, адреса учащегося; контакты в базе открытым текстом и маскируются при выдаче; LUKS не описан; ClamAV включается отдельно; алертов в Telegram нет |
 | §6 доступность | `pg_dump` + WAL-архив, `make restore-test` | `deploy/scripts/backup.sh` и `restore_test.sh`; WAL-архива нет, RPO по факту сутки |
 | §2.1, §2.3 LLM | локальный инференс внутри контура | не реализовано (только настройки `LLM_*`) |
-| §8 API | сводка ручек | 284 операции; отличия — в пометке к части 8 |
+| §8 API | сводка ручек | 287 операций (v0.6.3); отличия — в пометке к части 8 |
 
 **Не проверено при сверке:** построчное соответствие колонок всех таблиц части 7; поведение уже открытых сессий при недоступном Keycloak; напоминание руководителю о блокировке дольше 14 дней (§4.5); срок хранения самого аудита; `npm audit` в CI клиента; одноразовость ссылки на скачивание отчёта; замер «≤ 1 с в браузере» и импорт ровно 5 000 строк.
 
@@ -152,7 +152,7 @@
 
 **FastAPI / Python 3.12** *(разрешён ТЗ напрямую)*
 - ASGI-асинхронность: при 50 конкурентных пользователях и 10 параллельных отчётах основная нагрузка — I/O-bound (БД, S3, внешние API). Async-модель держит это меньшим числом воркеров, чем синхронный WSGI.
-- Pydantic v2 — единый источник истины схем: из них автоматически рождается OpenAPI 3.0.3 (`backend/openapi.json`, 284 операции), из OpenAPI — типизированный TS-клиент для фронта (`openapi-typescript`, `openapi-fetch`). Контракт не расходится с кодом физически.
+- Pydantic v2 — единый источник истины схем: из них автоматически рождается OpenAPI 3.0.3 (`backend/openapi.json`, 287 операций), из OpenAPI — типизированный TS-клиент для фронта (`openapi-typescript`, `openapi-fetch`). Контракт не расходится с кодом физически.
 - Экосистема под конкретные требования ТЗ: `openpyxl`/`xlrd` — импорт .xlsx/.xls с маппингом (`pandas` не используется); `xhtml2pdf` (вместо `WeasyPrint`: тот требует системных библиотек Pango/Cairo) — .pdf-отчёты; `matplotlib` (без `plotly`) — графики в .png/.pdf; `SQLAlchemy 2.0 + Alembic` — версионируемые миграции.
 - Требование «LLM в закрытом контуре»: не реализовано (см. §2.1); Python остаётся подходящей средой для локального инференса.
 
@@ -985,7 +985,7 @@ data_erasure_requests ──> files (акт об уничтожении)
 
 # ЧАСТЬ 8. КОНТУР API (сводка)
 
-> Полный перечень — OpenAPI (`backend/openapi.json`, `/api/docs`): 284 операции. Расхождения со сводкой ниже: маппинг импорта — `PUT /api/imports/{id}/mapping` (не POST); граф воронки записывается `PUT /api/workflows/{id}/graph`, читается вместе с воронкой `GET /api/workflows/{id}`; вход начинается с `GET /api/auth/login`; `/metrics` снаружи недоступен (404), в OpenAPI его нет; добавлены `/api/admin/users/{id}/offboard/items`, `/api/users/{id}/handover`, `/api/admin/users/{id}/invite`, `/api/auth/invite/{token}`, `/api/meta/error-codes`, ручки лицензий, запросов доступа, инцидентов, webhook-подписок и API-ключей. Ниже — исходная сводка.
+> Полный перечень — OpenAPI (`backend/openapi.json`, `/api/docs`): 287 операций (v0.6.3: добавлены общий поиск `GET /api/search` и подсчёт строк отчёта `POST /api/reports/preview`). Расхождения со сводкой ниже: маппинг импорта — `PUT /api/imports/{id}/mapping` (не POST); граф воронки записывается `PUT /api/workflows/{id}/graph`, читается вместе с воронкой `GET /api/workflows/{id}`; вход начинается с `GET /api/auth/login`; `/metrics` снаружи недоступен (404), в OpenAPI его нет; добавлены `/api/admin/users/{id}/offboard/items`, `/api/users/{id}/handover`, `/api/admin/users/{id}/invite`, `/api/auth/invite/{token}`, `/api/meta/error-codes`, ручки лицензий, запросов доступа, инцидентов, webhook-подписок и API-ключей. Ниже — исходная сводка.
 
 ```
 POST   /api/auth/callback | /api/auth/logout | /api/auth/backchannel-logout
@@ -1014,7 +1014,7 @@ POST   /api/files/upload-intent | POST /api/files/{id}/commit | GET /api/files/{
 POST   /api/imports | GET /api/imports/{id} | POST /api/imports/{id}/mapping
 POST   /api/imports/{id}/dry-run | /apply | /rollback
 
-POST   /api/reports | GET /api/reports/{id} | GET /api/reports/{id}/download
+POST   /api/reports | POST /api/reports/preview | GET /api/reports/{id} | GET /api/reports/{id}/download
 
 GET    /api/admin/users | POST /api/admin/users
 PATCH  /api/admin/users/{id} | POST /api/admin/users/{id}/block | /reset-password
